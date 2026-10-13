@@ -11,8 +11,11 @@ export interface SceneConfig {
   judgementTextSize?: 'small' | 'normal' | 'large';
   showEarlyLate?: boolean;
   lowFx?: boolean;
+  noteSkin?: NoteSkin;
+  highwayStyle?: HighwayStyle;
 }
 import type { ViewportInfo } from './layout';
+import type { HighwayStyle, NoteSkin } from '../save/schema';
 
 /** Chrome background token from DESIGN.md §1. */
 const BACKGROUND = 0x0b0912;
@@ -96,6 +99,8 @@ export class Stage {
       ...(o.judgementTextSize ? { judgementTextSize: o.judgementTextSize } : {}),
       ...(o.showEarlyLate !== undefined ? { showEarlyLate: o.showEarlyLate } : {}),
       ...(o.lowFx !== undefined ? { lowFx: o.lowFx } : {}),
+      ...(o.noteSkin ? { noteSkin: o.noteSkin } : {}),
+      ...(o.highwayStyle ? { highwayStyle: o.highwayStyle } : {}),
     });
     this.app.stage.addChild(scene.root);
     this.scene = scene;

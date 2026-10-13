@@ -44,6 +44,21 @@ export function sectionText(song: Song, t: number, level?: number): string {
     : `${label} · bar ${Math.min(bar + 1, song.total)}/${song.total}`;
 }
 
+/** Practice section chips: "Verse 1", "Chorus 2", … in song order. */
+export function sectionChoices(song: Song): { index: number; label: string; bars: number }[] {
+  const seen: Record<string, number> = {};
+  return song.sections.map((sec, index) => {
+    const n = (seen[sec.type] = (seen[sec.type] ?? 0) + 1);
+    const repeats = song.sections.filter((x) => x.type === sec.type).length;
+    const label = `${SECTION_LABEL[sec.type] ?? sec.type}${repeats > 1 ? ` ${n}` : ''}`;
+    return { index, label, bars: sec.len };
+  });
+}
+
+export function practiceText(label: string, loop: number, rate: number): string {
+  return `Practice · ${label} · loop ${loop + 1} · ${Math.round(rate * 100)}%`;
+}
+
 export const SEED_WORDS = [
   'amber',
   'cobalt',

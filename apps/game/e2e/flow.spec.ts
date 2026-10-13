@@ -138,6 +138,28 @@ test.describe('game flow', () => {
     await waitScreen(page, 'select');
   });
 
+  test('calibration opened from settings returns to settings, then DONE leaves settings', async ({
+    page,
+  }) => {
+    await page.goto(`/#audio=0&memsave=1`);
+    await waitScreen(page, 'title');
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await waitScreen(page, 'settings');
+    await page.getByRole('button', { name: 'Run calibration' }).click();
+    await waitScreen(page, 'calibration');
+    await page.getByRole('button', { name: 'DONE' }).click();
+    await waitScreen(page, 'settings');
+    await page.getByRole('button', { name: 'DONE' }).click();
+    await waitScreen(page, 'title');
+    // Profile from select, then Settings from profile's return path.
+    await page.getByRole('button', { name: 'PLAY' }).click();
+    await waitScreen(page, 'select');
+    await page.getByRole('button', { name: 'Profile' }).click();
+    await waitScreen(page, 'profile');
+    await page.keyboard.press('Escape');
+    await waitScreen(page, 'select');
+  });
+
   test('keyboard only: Tab and Enter reach a run', async ({ page }) => {
     await page.goto(`/#${HARNESS}`);
     await waitScreen(page, 'title');

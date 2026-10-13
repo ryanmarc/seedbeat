@@ -1,5 +1,14 @@
 import { controller } from '../app/controller';
-import { countdown, hudAcc, hudHealth, hudProgress, hudScore, hudSection } from '../app/state';
+import {
+  countdown,
+  hudAcc,
+  hudHealth,
+  hudProgress,
+  hudPrompt,
+  hudScore,
+  hudSection,
+  hudTutorial,
+} from '../app/state';
 
 export function Hud() {
   return (
@@ -40,6 +49,16 @@ export function Hud() {
       <div class="progress">
         <i style={{ transform: `scaleX(${hudProgress.value})` }} />
       </div>
+      {hudPrompt.value && (
+        <div class="prompt" aria-live="polite">
+          <span>{hudPrompt.value}</span>
+          {hudTutorial.value && (
+            <button type="button" class="btn small" onClick={() => controller.skipTutorial()}>
+              Skip tutorial
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

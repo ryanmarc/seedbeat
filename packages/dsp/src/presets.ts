@@ -435,6 +435,30 @@ export function hitSoundTriggers(j: Judgement, out: Trigger[]): void {
   });
 }
 
+export type UiSound = 'tap' | 'confirm' | 'back' | 'unlock';
+
+/** Menu blips (DESIGN.md §6): short, quiet, from the same DSP, on the reserved voices. */
+export function uiSoundTriggers(kind: UiSound, out: Trigger[]): void {
+  const blip = (freq: number, offset: number, vol = 0.07, dur = 0.03): Trigger => ({
+    offset,
+    params: tone({ wave: 'triangle', freq, dur, vol, a: 0.002, d: 0.05, s: 0, r: 0.03 }),
+  });
+  switch (kind) {
+    case 'tap':
+      out.push(blip(880, 0));
+      break;
+    case 'confirm':
+      out.push(blip(660, 0), blip(990, 0.07));
+      break;
+    case 'back':
+      out.push(blip(520, 0, 0.06));
+      break;
+    case 'unlock':
+      out.push(blip(660, 0), blip(880, 0.08), blip(1320, 0.16, 0.08, 0.08));
+      break;
+  }
+}
+
 /** Master chain settings per mood (AUDIO.md §1). */
 export interface MoodMix {
   toneLowpassHz: number;

@@ -35,6 +35,7 @@ import {
 } from './layout';
 import { CHROME, type Palette } from './palette';
 import { buildTextures, type TextureKit } from './textures';
+import type { HighwayStyle, NoteSkin } from '../save/schema';
 
 export const DISPLAY_FONT = 'seedbeat-display';
 export const DATA_FONT = 'seedbeat-data';
@@ -43,6 +44,10 @@ const HOLD_POOL = 16;
 const BEAT_LINES = 24;
 const PARTICLES = 160;
 const POP_SEC = 0.6;
+const CHORUS_FLASH_SEC = 0.35;
+const RING_SEC = 0.6;
+/** Combo milestones that earn a ring burst (RENDERING.md §3). */
+export const COMBO_MILESTONES = [50, 100, 200] as const;
 
 let fontsInstalled = false;
 /** Installs the dynamic bitmap fonts once. Bundled font faces arrive in M5; system faces until then. */
@@ -85,6 +90,8 @@ export interface SceneOptions {
   showEarlyLate?: boolean;
   /** Battery saver: fewer particles. */
   lowFx?: boolean;
+  noteSkin?: NoteSkin;
+  highwayStyle?: HighwayStyle;
 }
 
 export interface SceneFrame {
@@ -100,6 +107,8 @@ export interface SceneFrame {
   countdown?: number;
   /** Menus: no notes, no end banner, dimmed highway. */
   idle?: boolean;
+  /** Bar to use for section lookups when the draw clock does not map to song bars (Practice loops). */
+  sectionBar?: number;
 }
 
 const POP_TEXT: Record<Judgement, string> = {
@@ -154,6 +163,11 @@ export class Scene {
   private readonly popSub: BitmapText;
   private readonly countdown: BitmapText;
   private readonly endBanner: BitmapText;
+  private readonly ring: Sprite;
+  private ringAt = -9;
+  private milestone = 0;
+  private chorusFlashAt = -9;
+  private lastSectionStart = -1;
   private endShown = false;
   private readonly flashAt = [-9, -9, -9, -9];
   private readonly wasPressed = [false, false, false, false];
@@ -175,7 +189,8 @@ export class Scene {
     this.reducedMotion = o.reducedMotion;
     this.lowFx = o.lowFx === true;
     this.showEarlyLate = o.showEarlyLate !== false;
-    const kit = (this.kit = buildTextures(renderer, l, o.palette, o.resolution));
+    const kit = (this.kit = buildTextures(renderer, l, o.palette, o.resolution, o.noteSkin));
+    const style: HighwayStyle = o.highwayStyle ?? 'default';
     this.background = createBackground(o.mood, renderer, l, kit, o.resolution, o.palette.lane);
     this.root.addChild(this.background.container);
 
@@ -201,10 +216,20 @@ export class Scene {
         y1 + 0.5,
       ]).fill({ color: 0x06040c, alpha: a });
     }
-    for (let e = 1; e < 4; e++)
-      hw.moveTo(laneEdgeX(l, l.topW, e), l.topY)
-        .lineTo(laneEdgeX(l, l.bottomW, e), l.bottom)
-        .stroke({ color: 0xffffff, alpha: 0.1, width: 1 });
+    if (style !== 'minimal')
+      for (let e = 1; e < 4; e++)
+        hw.moveTo(laneEdgeX(l, l.topW, e), l.topY)
+          .lineTo(laneEdgeX(l, l.bottomW, e), l.bottom)
+          .stroke({ color: 0xffffff, alpha: 0.1, width: 1 });
+    if (style === 'grid') {
+      // Faint static cross lines, denser toward the horizon like the beat lines.
+      for (let i = 1; i < 12; i++) {
+        const q = project(l, i / 12, this.proj);
+        hw.moveTo(l.cx - q.w / 2, q.y)
+          .lineTo(l.cx + q.w / 2, q.y)
+          .stroke({ color: o.palette.accent2, alpha: 0.08, width: 1 });
+      }
+    }
     for (const e of [0, 4])
       hw.moveTo(laneEdgeX(l, l.topW, e), l.topY)
         .lineTo(laneEdgeX(l, l.bottomW, e), l.bottom)
@@ -405,6 +430,12 @@ export class Scene {
     this.endBanner.anchor.set(0.5);
     this.endBanner.position.set(l.cx, l.horizonY + (l.hitY - l.horizonY) * 0.3);
     this.endBanner.visible = false;
+    this.ring = new Sprite(kit.ring);
+    this.ring.anchor.set(0.5);
+    this.ring.position.set(l.cx, l.comboY - 20);
+    this.ring.tint = o.palette.accent;
+    this.ring.visible = false;
+    this.root.addChild(this.ring);
     this.root.addChild(
       this.combo,
       this.comboLabel,
@@ -461,8 +492,19 @@ export class Scene {
     const beat = song.sd * 4;
     const ph = (((t / beat) % 1) + 1) % 1;
     const pulse = (this.reducedMotion ? 0.4 : 1) * Math.exp(-ph * 5);
-    const bar = Math.max(0, Math.floor(t / song.barDur));
+    const bar = f.sectionBar ?? Math.max(0, Math.floor(t / song.barDur));
     const sec = sectionFor(song, bar);
+    // Chorus start: a short flash across all lanes (PRD §9; none in reduced motion).
+    const secStart = bar - sec.barIn;
+    if (secStart !== this.lastSectionStart) {
+      const fresh = this.lastSectionStart >= 0 && t >= 0;
+      this.lastSectionStart = secStart;
+      if (fresh && sec.type === 'chorus' && !this.reducedMotion && !f.idle && !f.paused)
+        this.chorusFlashAt = f.perf;
+    }
+    // Subtle camera bob on the beat: background only, so the hit line never moves.
+    this.background.container.y =
+      this.reducedMotion || f.idle ? 0 : -2.5 * pulse * INTENSITY[sec.type];
     this.background.update({
       t,
       pulse,
@@ -512,7 +554,9 @@ export class Scene {
       this.wasPressed[lane] = on;
       const age = f.perf - this.flashAt[lane]!;
       const beam = this.beams[lane]!;
-      const beamAlpha = on ? 0.22 : age < 0.25 ? 0.22 * (1 - age / 0.25) : 0;
+      const flashAge = f.perf - this.chorusFlashAt;
+      const flash = flashAge < CHORUS_FLASH_SEC ? 0.3 * (1 - flashAge / CHORUS_FLASH_SEC) : 0;
+      const beamAlpha = Math.max(flash, on ? 0.22 : age < 0.25 ? 0.22 * (1 - age / 0.25) : 0);
       beam.alpha = beamAlpha;
       beam.visible = beamAlpha > 0;
       this.receptorFill[lane]!.alpha = on ? 0.45 : 0;
@@ -687,6 +731,25 @@ export class Scene {
       this.combo.text = combo ? String(combo) : '';
       this.comboLabel.visible = combo > 0;
     }
+    // Combo milestones: ring burst at 50 / 100 / 200, once per climb.
+    if (s.combo < this.milestone) this.milestone = 0;
+    for (const m of COMBO_MILESTONES) {
+      if (s.combo >= m && this.milestone < m) {
+        this.milestone = m;
+        if (!f.idle) {
+          this.ringAt = f.perf;
+          if (!this.reducedMotion)
+            for (let lane = 0; lane < 4; lane++) this.burst(lane, pal.accent);
+        }
+      }
+    }
+    const ringAge = f.perf - this.ringAt;
+    if (ringAge < RING_SEC) {
+      const k = ringAge / RING_SEC;
+      this.ring.scale.set(this.reducedMotion ? 1.6 : 0.6 + k * 2.4);
+      this.ring.alpha = 1 - k;
+      this.ring.visible = true;
+    } else if (this.ring.visible) this.ring.visible = false;
     const popAge = f.perf - this.popAt;
     if (popAge < POP_SEC) {
       const sc = 1 + Math.max(0, 0.15 - popAge) * 2;

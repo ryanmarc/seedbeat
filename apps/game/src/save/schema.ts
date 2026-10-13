@@ -8,6 +8,10 @@ export const SAVE_VERSION = 1;
 export type LanePalette = 'mood' | 'cb-a' | 'cb-b' | 'high-contrast';
 export type QualityMode = 'auto' | 'high' | 'battery';
 export type FrameCap = 'auto' | 60 | 30;
+export type NoteSkin = 'classic' | 'neon' | 'pixel' | 'glass';
+export type HighwayStyle = 'default' | 'grid' | 'minimal';
+export const NOTE_SKINS: readonly NoteSkin[] = ['classic', 'neon', 'pixel', 'glass'];
+export const HIGHWAY_STYLES: readonly HighwayStyle[] = ['default', 'grid', 'minimal'];
 
 export interface Settings {
   /** Note speed multiplier 0.75–2 (scales approach time inversely). */
@@ -29,6 +33,11 @@ export interface Settings {
   quality: QualityMode;
   frameCap: FrameCap;
   diagnostics: boolean;
+  /** Menu blips from the synth. */
+  menuSounds: boolean;
+  /** Cosmetics unlocked by level (PRD §8); no gameplay effect. */
+  noteSkin: NoteSkin;
+  highwayStyle: HighwayStyle;
 }
 
 export interface Best {
@@ -54,9 +63,18 @@ export interface SaveV1 {
   bests: Record<string, Best>;
   recents: string[];
   favourites: string[];
-  daily: Record<string, { score: number; grade: Grade }>;
+  daily: Record<string, { score: number; grade: Grade; difficulty: Difficulty }>;
+  /** Consecutive UTC days with a daily clear; `last` is the most recent day (YYYY-MM-DD). */
   streak: { current: number; last: string };
-  profile: { xp: number; level: number; plays: number; playSec: number; achievements: string[] };
+  profile: {
+    xp: number;
+    level: number;
+    plays: number;
+    playSec: number;
+    achievements: string[];
+    tutorialDone: boolean;
+    practiceRuns: number;
+  };
   quality: { tier: number; lockedThisDevice: boolean };
 }
 
@@ -81,6 +99,9 @@ export const DEFAULT_SETTINGS: Settings = {
   quality: 'auto',
   frameCap: 'auto',
   diagnostics: false,
+  menuSounds: true,
+  noteSkin: 'classic',
+  highwayStyle: 'default',
 };
 
 export function defaultSave(): SaveV1 {
@@ -93,7 +114,15 @@ export function defaultSave(): SaveV1 {
     favourites: [],
     daily: {},
     streak: { current: 0, last: '' },
-    profile: { xp: 0, level: 1, plays: 0, playSec: 0, achievements: [] },
+    profile: {
+      xp: 0,
+      level: 1,
+      plays: 0,
+      playSec: 0,
+      achievements: [],
+      tutorialDone: false,
+      practiceRuns: 0,
+    },
     quality: { tier: 0, lockedThisDevice: false },
   };
 }
@@ -127,6 +156,12 @@ export function migrate(raw: unknown): SaveV1 {
   settings.hitVolume = clampNum(settings.hitVolume, 0, 1, 0.8);
   settings.audioOffsetMs = clampNum(settings.audioOffsetMs, -500, 500, 0);
   settings.visualOffsetMs = clampNum(settings.visualOffsetMs, -500, 500, 0);
+  if (!NOTE_SKINS.includes(settings.noteSkin)) settings.noteSkin = 'classic';
+  if (!HIGHWAY_STYLES.includes(settings.highwayStyle)) settings.highwayStyle = 'default';
+  const profile = isObject(r.profile)
+    ? { ...d.profile, ...(r.profile as Partial<SaveV1['profile']>) }
+    : d.profile;
+  if (!Array.isArray(profile.achievements)) profile.achievements = [];
   return {
     v: 1,
     settings,
@@ -140,9 +175,7 @@ export function migrate(raw: unknown): SaveV1 {
       : [],
     daily: isObject(r.daily) ? (r.daily as SaveV1['daily']) : {},
     streak: isObject(r.streak) ? { ...d.streak, ...(r.streak as SaveV1['streak']) } : d.streak,
-    profile: isObject(r.profile)
-      ? { ...d.profile, ...(r.profile as SaveV1['profile']) }
-      : d.profile,
+    profile,
     quality: isObject(r.quality)
       ? { ...d.quality, ...(r.quality as SaveV1['quality']) }
       : d.quality,

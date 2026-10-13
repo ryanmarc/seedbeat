@@ -4,8 +4,10 @@ import {
   countInTrigger,
   eventTriggers,
   hitSoundTriggers,
+  uiSoundTriggers,
   type Judgement,
   type Trigger,
+  type UiSound,
 } from '@seedbeat/dsp';
 
 export interface StartOptions {
@@ -18,6 +20,8 @@ export interface StartOptions {
   countIn?: boolean;
   fromBar?: number;
   toBar?: number;
+  /** Wrap from `toBar` back to `fromBar` instead of ending (Practice). */
+  loop?: boolean;
 }
 
 /** Bars kept in the song's memo cache behind the playhead (prototype: 4). */
@@ -35,6 +39,9 @@ export class Sequencer {
   private bar = 0;
   private step = 0;
   private toBar = Infinity;
+  private fromBar = 0;
+  private loop = false;
+  private loops = 0;
   private playing = false;
   private pausedAtFrame = 0;
   private ended = false;
@@ -82,16 +89,20 @@ export class Sequencer {
     this.song = song;
     this.rate = o.rate ?? 1;
     this.startFrame = o.startFrame;
-    this.bar = o.fromBar ?? 0;
+    this.fromBar = o.fromBar ?? 0;
+    this.bar = this.fromBar;
     this.step = 0;
     this.toBar = Math.min(o.toBar ?? Infinity, song.total ?? Infinity);
+    this.loop = o.loop === true && Number.isFinite(this.toBar);
+    this.loops = 0;
     this.playing = true;
     this.ended = false;
     this.pre.length = 0;
     this.engine.configure(o.mood, song.sd / this.rate);
     if (o.countIn) {
+      // Four clicks on the beats before the first bar played.
       for (let i = 0; i < 4; i++) {
-        const t = -((4 - i) * song.sd * 4) / this.rate;
+        const t = this.fromBar * song.barDur - (4 - i) * song.sd * 4;
         this.pre.push({ frame: this.frameOf(t), trigger: countInTrigger(i === 0 ? 1 : 0.7) });
       }
     }
@@ -150,6 +161,23 @@ export class Sequencer {
     this.engine.triggerAll(this.scratch, atFrame, true);
   }
 
+  /** Menu blip at `gain` (its own volume, so it plays even with hit sounds off). Not on the play path. */
+  uiSound(kind: UiSound, atFrame: number, gain: number): void {
+    if (gain <= 0) return;
+    this.scratch.length = 0;
+    uiSoundTriggers(kind, this.scratch);
+    for (const t of this.scratch) {
+      const p = t.params;
+      if (p.kind === 'tone') t.params = { ...p, vol: p.vol * gain };
+    }
+    this.engine.triggerAll(this.scratch, atFrame, true);
+  }
+
+  /** Completed loops of the practice section. */
+  get loopCount(): number {
+    return this.loops;
+  }
+
   private frameOf(songTime: number): number {
     return this.startFrame + Math.round((songTime / this.rate) * this.sampleRate);
   }
@@ -174,8 +202,17 @@ export class Sequencer {
     if (s && this.playing) {
       for (;;) {
         if (this.bar >= this.toBar) {
-          if (!this.ended) this.ended = true;
-          break;
+          if (!this.loop) {
+            if (!this.ended) this.ended = true;
+            break;
+          }
+          // Seamless wrap: the next repetition's bar `fromBar` lands where `toBar` would have.
+          const sectionFrames = ((this.toBar - this.fromBar) * s.barDur) / this.rate;
+          this.startFrame += Math.round(sectionFrames * this.sampleRate);
+          this.bar = this.fromBar;
+          this.step = 0;
+          this.loops++;
+          for (let b = this.toBar - KEEP_BARS; b < this.toBar; b++) s.bars.delete(b);
         }
         const t = stepTime(s, this.bar, this.step);
         const frame = this.frameOf(t);

@@ -21,6 +21,7 @@ class SeedbeatProcessor extends AudioWorkletProcessor {
     Math.round((STATUS_INTERVAL_SEC * sampleRate) / BLOCK_SIZE),
   );
   private blocks = 0;
+  private uiGain = 1;
   private endedSent = false;
   private readonly silentL = new Float32Array(BLOCK_SIZE);
   private readonly silentR = new Float32Array(BLOCK_SIZE);
@@ -65,6 +66,7 @@ class SeedbeatProcessor extends AudioWorkletProcessor {
           ...(msg.countIn !== undefined ? { countIn: msg.countIn } : {}),
           ...(msg.fromBar !== undefined ? { fromBar: msg.fromBar } : {}),
           ...(msg.toBar !== undefined ? { toBar: msg.toBar } : {}),
+          ...(msg.loop !== undefined ? { loop: msg.loop } : {}),
         });
         this.endedSent = false;
         break;
@@ -89,9 +91,13 @@ class SeedbeatProcessor extends AudioWorkletProcessor {
         if (msg.master !== undefined) this.engine.masterGain = msg.master;
         if (msg.music !== undefined) this.engine.musicGain = msg.music;
         if (msg.hit !== undefined) this.engine.hitGain = msg.hit;
+        if (msg.ui !== undefined) this.uiGain = msg.ui;
         break;
       case 'hitSound':
         this.seq.hitSound(msg.judgement, currentFrame);
+        break;
+      case 'ui':
+        this.seq.uiSound(msg.sound, currentFrame, this.uiGain);
         break;
     }
   }

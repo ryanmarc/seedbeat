@@ -6,6 +6,7 @@ import { Graphics, type Renderer, type Texture } from 'pixi.js';
 import type { Layout } from './layout';
 import type { Palette } from './palette';
 import { CHROME } from './palette';
+import type { NoteSkin } from '../save/schema';
 
 export interface TextureKit {
   /** Per-lane note gem with its lane notch. */
@@ -30,6 +31,8 @@ export interface TextureKit {
   pads: Texture | null;
   padHighlight: Texture | null;
   glow: Texture;
+  /** Ring outline for combo milestones (RENDERING.md §3). */
+  ring: Texture;
   destroy(): void;
 }
 
@@ -46,24 +49,47 @@ function bake(renderer: Renderer, draw: (g: Graphics) => void, resolution: numbe
   return tex;
 }
 
+/** Draws one lane's gem in a skin (PRD §8 cosmetics). Every skin keeps the lane notch. */
+export function drawGem(g: Graphics, skin: NoteSkin, col: number, lane: number, w: number): void {
+  const nx = NOTCH_X[lane]! * w;
+  switch (skin) {
+    case 'neon':
+      g.roundRect(1.5, 1.5, w - 3, NOTE_H - 3, 6)
+        .fill({ color: col, alpha: 0.28 })
+        .stroke({ color: col, width: 2.5 });
+      g.roundRect(4, 4, w - 8, NOTE_H - 8, 4).stroke({ color: 0xffffff, width: 1, alpha: 0.5 });
+      g.rect(nx - 1.5, NOTE_H - 7, 3, 5).fill({ color: 0xffffff, alpha: 0.9 });
+      break;
+    case 'pixel':
+      g.rect(3, 3, w - 3, NOTE_H - 3).fill({ color: 0x000000, alpha: 0.5 });
+      g.rect(0, 0, w - 3, NOTE_H - 3).fill(col);
+      g.rect(2, 2, w - 7, 4).fill({ color: 0xffffff, alpha: 0.5 });
+      g.rect(nx - 2, NOTE_H - 9, 4, 4).fill({ color: 0x000000, alpha: 0.6 });
+      break;
+    case 'glass':
+      g.roundRect(0, 0, w, NOTE_H, 9)
+        .fill({ color: col, alpha: 0.55 })
+        .stroke({ color: 0xffffff, width: 1.5, alpha: 0.85 });
+      g.roundRect(3, 2, w - 6, NOTE_H * 0.45, 5).fill({ color: 0xffffff, alpha: 0.35 });
+      g.rect(nx - 1.5, NOTE_H - 7, 3, 5).fill({ color: 0x000000, alpha: 0.5 });
+      break;
+    default:
+      g.roundRect(0, 0, w, NOTE_H, 7).fill(col);
+      g.roundRect(3, 2, w - 6, 5, 3).fill({ color: 0xffffff, alpha: 0.6 });
+      g.rect(nx - 1.5, NOTE_H - 7, 3, 5).fill({ color: 0x000000, alpha: 0.45 });
+  }
+}
+
 export function buildTextures(
   renderer: Renderer,
   l: Layout,
   pal: Palette,
   resolution: number,
+  skin: NoteSkin = 'classic',
 ): TextureKit {
   const gemW = Math.max(8, Math.ceil(l.laneW * 0.86));
   const gem = pal.lane.map((col, lane) =>
-    bake(
-      renderer,
-      (g) => {
-        g.roundRect(0, 0, gemW, NOTE_H, 7).fill(col);
-        g.roundRect(3, 2, gemW - 6, 5, 3).fill({ color: 0xffffff, alpha: 0.6 });
-        const nx = NOTCH_X[lane]! * gemW;
-        g.rect(nx - 1.5, NOTE_H - 7, 3, 5).fill({ color: 0x000000, alpha: 0.45 });
-      },
-      resolution,
-    ),
+    bake(renderer, (g) => drawGem(g, skin, col, lane, gemW), resolution),
   );
   const gemMissed = bake(
     renderer,
@@ -121,6 +147,12 @@ export function buildTextures(
         g.circle(120, 120, i * 9).fill({ color: 0xffe9c7, alpha: 0.08 });
     },
     1,
+  );
+
+  const ring = bake(
+    renderer,
+    (g) => g.circle(34, 34, 30).stroke({ color: 0xffffff, width: 4, alpha: 1 }),
+    resolution,
   );
 
   // Receptor strip: hit line, receptor outlines, key caps (desktop).
@@ -198,6 +230,7 @@ export function buildTextures(
     receptorFill,
     pads,
     padHighlight,
+    ring,
   ];
   return {
     gem,
@@ -215,6 +248,7 @@ export function buildTextures(
     pads,
     padHighlight,
     glow,
+    ring,
     destroy() {
       for (const t of all) t?.destroy(true);
     },

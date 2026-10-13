@@ -3,6 +3,9 @@
  * Types only; importable from both sides.
  */
 import type { GeneratorVersion, MoodId, Mode } from '@seedbeat/core';
+import type { UiSound } from '@seedbeat/dsp';
+
+export type { UiSound };
 
 /** Name the processor registers under; the main thread passes it to AudioWorkletNode. */
 export const PROCESSOR_NAME = 'seedbeat';
@@ -28,6 +31,8 @@ export type MainToWorklet =
       fromBar?: number;
       /** Stop after this bar (exclusive). Default: song end, or never for endless. */
       toBar?: number;
+      /** Practice: on reaching `toBar`, continue seamlessly from `fromBar` instead of ending. */
+      loop?: boolean;
     }
   | { type: 'pause' }
   | {
@@ -43,8 +48,10 @@ export type MainToWorklet =
       count: number;
       interval: number;
     }
-  | { type: 'volumes'; master?: number; music?: number; hit?: number }
-  | { type: 'hitSound'; judgement: Judgement };
+  | { type: 'volumes'; master?: number; music?: number; hit?: number; ui?: number }
+  | { type: 'hitSound'; judgement: Judgement }
+  /** Menu blip, played now at the UI volume (independent of hit-sound volume). */
+  | { type: 'ui'; sound: UiSound };
 
 export interface StatusMessage {
   type: 'status';

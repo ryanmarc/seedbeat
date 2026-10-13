@@ -6,46 +6,62 @@ import {
   APPROACH_BASE,
   ChartBuilder,
   CURRENT_GENERATOR_VERSION,
+  PracticeBuilder,
+  TUTORIAL_MOOD,
+  TUTORIAL_SEED,
   appendNotes,
   approachAt,
   buildChart,
   createSession,
   levelAt,
   makeSong,
+  repStart,
   songEndTime,
   summarize,
+  tutorialChart,
   type ChartNote,
+  type Difficulty,
+  type PracticeSection,
   type Song,
+  type TutorialPrompt,
 } from '@seedbeat/core';
+import type { UiSound } from '@seedbeat/worklet/protocol';
 import { AutoplayBot } from '../engine/bot';
 import { KeyMap } from '../engine/input';
 import { attachInput, pollGamepads } from '../engine/input-dom';
 import { GamepadLanes, type LaneEvent } from '../engine/input';
 import { GameLoop, summarizeStats } from '../engine/loop';
 import { PlayRun } from '../engine/play';
+import { NO_HAPTICS, WebHaptics, hapticFor, type Haptics } from '../platform/haptics';
 import { DiagnosticsOverlay } from '../render/diagnostics';
 import { Stage } from '../render/stage';
 import type { Scene } from '../render/scene';
 import { TIERS } from '../render/quality';
 import { SaveStore, MemoryKV } from '../save/store';
 import { songKey, starsFor, type Settings } from '../save/schema';
-import { previewStartTime, sectionText } from './format';
+import { achievementById, newAchievements, type FinishedRun } from './achievements';
+import { dailySelection, isDaily, nextStreak, utcDay } from './daily';
+import { practiceText, previewStartTime, sectionChoices, sectionText } from './format';
+import { HIGHWAY_LIST, NOTE_SKIN_LIST, levelFor, unlocked, xpFromScore } from './progression';
 import {
   audioReady,
   countdown,
   hudAcc,
   hudHealth,
   hudProgress,
+  hudPrompt,
   hudScore,
   hudSection,
+  hudTutorial,
   listening,
   results,
-  returnTo,
+  returnStack,
   save as saveSignal,
   screen,
   selection,
   settings as settingsSignal,
   showToast,
+  type RunKind,
   type Screen,
   type Selection,
 } from './state';
@@ -63,6 +79,9 @@ export interface Harness {
   /** End the run after this many song seconds (e2e). */
   endAfter: number | null;
   memorySave: boolean;
+  /** Any harness flag set: the first-run tutorial stays out of the way unless `tutorial=1`. */
+  test: boolean;
+  tutorial: boolean;
 }
 
 export function readHash(): { sel: Partial<Selection>; harness: Harness } {
@@ -76,28 +95,34 @@ export function readHash(): { sel: Partial<Selection>; harness: Harness } {
     sel.difficulty = Math.min(3, Math.max(0, Number(p.get('d')))) as Selection['difficulty'];
   if (p.get('mode') === 'endless' || p.get('mode') === 'song')
     sel.mode = p.get('mode') as Selection['mode'];
-  return {
-    sel,
-    harness: {
-      bot: p.get('bot') === '1',
-      audio: p.get('audio') !== '0',
-      auto: p.get('auto') === '1',
-      lock: p.get('lock') === '1',
-      noFail: p.get('nofail') === '1',
-      touch: p.get('touch') === '1',
-      diag: p.get('diag') === '1',
-      endAfter: p.get('end') !== null ? Number(p.get('end')) : null,
-      memorySave: p.get('memsave') === '1',
-    },
+  const h: Harness = {
+    bot: p.get('bot') === '1',
+    audio: p.get('audio') !== '0',
+    auto: p.get('auto') === '1',
+    lock: p.get('lock') === '1',
+    noFail: p.get('nofail') === '1',
+    touch: p.get('touch') === '1',
+    diag: p.get('diag') === '1',
+    endAfter: p.get('end') !== null ? Number(p.get('end')) : null,
+    memorySave: p.get('memsave') === '1',
+    test: false,
+    tutorial: p.get('tutorial') === '1',
   };
+  h.test = h.bot || h.auto || h.memorySave || !h.audio || h.endAfter !== null;
+  return { sel, harness: h };
 }
 
 interface Run {
+  kind: RunKind;
   song: Song;
+  /** Song the scene draws with (tempo-scaled for Practice). */
+  sceneSong: Song;
   run: PlayRun;
   scene: Scene;
   bot: AutoplayBot | null;
-  builder: ChartBuilder | null;
+  /** Endless and Practice: generate more notes ahead of the playhead. */
+  lookahead: { needMore(t: number): boolean; next(): ChartNote[] } | null;
+  peakLevel: () => number;
   endTime: number | undefined;
   startedAt: number;
   /** Context time of bar 0 (shifts on resume). */
@@ -108,8 +133,15 @@ interface Run {
   detach: () => void;
   approachBase: number;
   idleHandle: number;
-  /** Song time of the last frame (for Endless lookahead and ending). */
+  /** Song time of the last frame (for lookahead and ending). */
   t: number;
+  /** Practice: the looped section, its chip label and rate. */
+  practice: (PracticeSection & { label: string; len: number }) | null;
+  prompts: TutorialPrompt[];
+  difficulty: Difficulty;
+  noFail: boolean;
+  /** Index into session.events of the first event not yet fed back (haptics). */
+  fedBack: number;
 }
 
 const IDLE_SESSION = createSession([], { difficulty: 1 });
@@ -117,6 +149,7 @@ const IDLE_SESSION = createSession([], { difficulty: 1 });
 export class GameController {
   readonly store: SaveStore;
   harness: Harness;
+  haptics: Haptics = NO_HAPTICS;
   private canvas: HTMLCanvasElement | null = null;
   private stage: Stage | null = null;
   private transport: Transport | null = null;
@@ -132,6 +165,8 @@ export class GameController {
   private lastEnded = false;
   private unlisten: (() => void) | null = null;
   private idleT0 = 0;
+  /** Injectable clock for the daily seed (tests). */
+  now: () => Date = () => new Date();
 
   constructor() {
     const { sel, harness } = readHash();
@@ -154,6 +189,9 @@ export class GameController {
       saveSignal.value = { ...sv };
       settingsSignal.value = { ...sv.settings };
     });
+    const h = new WebHaptics();
+    this.haptics = h;
+    h.enabled = s.settings.haptics;
     await document.fonts?.ready;
     this.diag = new DiagnosticsOverlay(document.body);
     this.diag.visible = s.settings.diagnostics || this.harness.diag;
@@ -162,6 +200,14 @@ export class GameController {
       if (document.hidden && screen.value === 'playing') this.pause();
     });
     window.addEventListener('resize', () => this.onResize());
+    // Menu sounds and primary-button haptics (DESIGN.md §6), one delegated listener.
+    document.getElementById('ui')?.addEventListener('click', (e) => {
+      const b = (e.target as Element | null)?.closest?.('button');
+      if (!b || screen.value === 'playing') return;
+      const primary = b.classList.contains('primary');
+      this.ui(primary ? 'confirm' : 'tap');
+      if (primary) this.haptics.pulse('ui');
+    });
     const hasDeepLink = Object.keys(readHash().sel).length > 0;
     if (this.harness.auto && !this.harness.audio) {
       await this.startRun();
@@ -229,6 +275,9 @@ export class GameController {
 
   private sceneOptions(song: Song, mood: Selection['mood']) {
     const s = this.settings;
+    const level = this.store.save.profile.level;
+    const skin = NOTE_SKIN_LIST.find((c) => c.id === s.noteSkin);
+    const hw = HIGHWAY_LIST.find((c) => c.id === s.highwayStyle);
     return {
       mood,
       song,
@@ -237,6 +286,8 @@ export class GameController {
       judgementTextSize: s.judgementTextSize,
       showEarlyLate: s.showEarlyLate,
       lowFx: s.quality === 'battery',
+      noteSkin: skin && unlocked(skin, level) ? skin.id : ('classic' as const),
+      highwayStyle: hw && unlocked(hw, level) ? hw.id : ('default' as const),
     };
   }
 
@@ -245,7 +296,8 @@ export class GameController {
     if (this.current) return;
     const stage = await this.ensureStage();
     const sel = selection.value;
-    const key = `${sel.mood}|${sel.seed}|${sel.mode}`;
+    const s = this.settings;
+    const key = `${sel.mood}|${sel.seed}|${sel.mode}|${s.noteSkin}|${s.highwayStyle}|${s.lanePalette}`;
     if (this.idleKey !== key || !this.idleScene) {
       this.idleKey = key;
       this.idleSong = makeSong(sel.seed, sel.mood, sel.mode);
@@ -310,15 +362,20 @@ export class GameController {
     }
     const t = this.harness.audio ? await WorkletTransport.create() : new SilentTransport();
     this.transport = t;
+    t.setVolumes(this.volumes());
+    t.clock.audioOffset = this.settings.audioOffsetMs / 1000;
+    audioReady.value = true;
+    return t;
+  }
+
+  private volumes(): { master: number; music: number; hit: number; ui: number } {
     const s = this.settings;
-    t.setVolumes({
+    return {
       master: s.masterVolume,
       music: s.musicVolume,
       hit: s.hitSounds ? s.hitVolume : 0,
-    });
-    t.clock.audioOffset = s.audioOffsetMs / 1000;
-    audioReady.value = true;
-    return t;
+      ui: s.menuSounds ? 0.9 : 0,
+    };
   }
 
   /** Create the transport, or explain why audio cannot start (insecure page, no worklet). */
@@ -337,14 +394,23 @@ export class GameController {
     }
   }
 
-  applyVolumes(): void {
-    const s = this.settings;
-    this.transport?.setVolumes({
-      master: s.masterVolume,
-      music: s.musicVolume,
-      hit: s.hitSounds ? s.hitVolume : 0,
+  /** Start the audio engine from a menu gesture so the first song starts faster and menus blip. */
+  warmAudio(): void {
+    if (this.transport) return;
+    void this.ensureTransport().catch(() => {
+      /* reported when Play is pressed */
     });
-    if (this.transport) this.transport.clock.audioOffset = s.audioOffsetMs / 1000;
+  }
+
+  applyVolumes(): void {
+    this.transport?.setVolumes(this.volumes());
+    if (this.transport) this.transport.clock.audioOffset = this.settings.audioOffsetMs / 1000;
+    if (this.haptics instanceof WebHaptics) this.haptics.enabled = this.settings.haptics;
+  }
+
+  /** Menu blip (DESIGN.md §6); silent until the audio engine exists. */
+  ui(sound: UiSound): void {
+    if (this.settings.menuSounds) this.transport?.ui(sound);
   }
 
   /* ----------------------------------------------------------- listen preview */
@@ -375,44 +441,159 @@ export class GameController {
     this.unlisten = t.onEnded(() => void this.listen(false));
   }
 
+  /* ----------------------------------------------------------- daily, practice, tutorial */
+  /** Today's UTC day. */
+  today(): string {
+    return utcDay(this.now());
+  }
+
+  /** Select today's daily seed and go to song select. */
+  goDaily(): void {
+    selection.value = dailySelection(this.today(), selection.value);
+    screen.value = 'select';
+    void this.ensureIdle();
+  }
+
+  /** Switch song select into Practice (first chorus, 75%). */
+  goPractice(): void {
+    const sel = selection.value;
+    const song = makeSong(sel.seed, sel.mood, 'song');
+    const chorus = song.sections.findIndex((x) => x.type === 'chorus');
+    selection.value = {
+      ...sel,
+      mode: 'song',
+      practice: sel.practice ?? { section: Math.max(0, chorus), rate: 0.75 },
+    };
+    screen.value = 'select';
+    void this.ensureIdle();
+  }
+
+  /** The first Play on a fresh save runs the tutorial (PRD §3); harness runs skip it. */
+  needsTutorial(): boolean {
+    return !this.store.save.profile.tutorialDone && (!this.harness.test || this.harness.tutorial);
+  }
+
+  startTutorial(): Promise<void> {
+    return this.startRun(true);
+  }
+
+  skipTutorial(): void {
+    if (this.current?.kind !== 'tutorial') return;
+    this.store.update((s) => {
+      s.profile.tutorialDone = true;
+    });
+    this.teardownRun();
+    screen.value = 'select';
+    void this.ensureIdle();
+  }
+
+  /** Practice: end the loop now and show the results. */
+  stopRun(): void {
+    if (!this.current) return;
+    if (screen.value === 'paused') screen.value = 'playing';
+    this.finish();
+  }
+
   /* ----------------------------------------------------------- run lifecycle */
-  async startRun(): Promise<void> {
+  async startRun(tutorial = false): Promise<void> {
+    this.teardownRun();
     await this.listen(false);
     const stage = await this.ensureStage();
     const t = await this.transportOrToast();
     if (!t) return;
-    const sel = selection.value;
     const s = this.settings;
+    const sel: Selection = tutorial
+      ? { mood: TUTORIAL_MOOD, mode: 'song', difficulty: 0, seed: TUTORIAL_SEED }
+      : selection.value;
+    const practice = !tutorial && sel.practice ? sel.practice : null;
+    const kind: RunKind = tutorial
+      ? 'tutorial'
+      : practice
+        ? 'practice'
+        : sel.mode === 'endless'
+          ? 'endless'
+          : isDaily(sel, this.today())
+            ? 'daily'
+            : 'song';
     const song = makeSong(sel.seed, sel.mood, sel.mode);
-    const noFail = s.noFail || this.harness.noFail || this.harness.bot;
+    const noFail =
+      s.noFail ||
+      this.harness.noFail ||
+      this.harness.bot ||
+      kind === 'practice' ||
+      kind === 'tutorial';
     let notes: ChartNote[];
-    let builder: ChartBuilder | null = null;
-    if (song.total !== null) {
-      notes = buildChart(song, sel.difficulty).notes;
+    let lookahead: Run['lookahead'] = null;
+    let peakLevel: () => number = () => 0;
+    let endTime: number | undefined;
+    let prompts: TutorialPrompt[] = [];
+    let sceneSong = song;
+    let practiceInfo: Run['practice'] = null;
+    let toBar: number | undefined;
+    let rate = 1;
+    let fromBar = 0;
+    const approachBase = APPROACH_BASE[sel.difficulty] / s.noteSpeed;
+    if (kind === 'tutorial') {
+      const tc = tutorialChart(song);
+      notes = tc.notes;
+      prompts = tc.prompts;
+      toBar = tc.totalBars;
+      endTime = songEndTime(tc.totalBars, song.barDur);
+    } else if (practice) {
+      const choices = sectionChoices(song);
+      const choice = choices[Math.min(practice.section, choices.length - 1)]!;
+      const sec = song.sections[choice.index]!;
+      const p: PracticeSection = {
+        fromBar: sec.start,
+        toBar: sec.start + sec.len,
+        rate: practice.rate,
+      };
+      const b = new PracticeBuilder(song, sel.difficulty, p);
+      notes = [...b.next(), ...b.next()];
+      lookahead = {
+        needMore: (now) => repStart(song, p, b.nextRep) < now + approachBase + 5,
+        next: () => b.next(),
+      };
+      rate = p.rate;
+      fromBar = p.fromBar;
+      toBar = p.toBar;
+      practiceInfo = { ...p, label: choice.label, len: sec.len };
+      sceneSong = { ...song, sd: song.sd / rate, barDur: song.barDur / rate, bpm: song.bpm * rate };
+    } else if (song.total !== null) {
+      const chart = buildChart(song, sel.difficulty);
+      notes = chart.notes;
+      peakLevel = () => chart.peakLevel;
+      endTime = songEndTime(song.total, song.barDur);
     } else {
-      builder = new ChartBuilder(song, sel.difficulty);
+      const b = new ChartBuilder(song, sel.difficulty);
       notes = [];
-      for (let i = 0; i < 12; i++) notes.push(...builder.next());
+      for (let i = 0; i < 12; i++) notes.push(...b.next());
+      lookahead = {
+        needMore: (now) => b.nextBar * song.barDur < now + approachBase + 5,
+        next: () => b.next(),
+      };
+      peakLevel = () => b.peakLevel;
     }
-    const endTime =
-      this.harness.endAfter !== null
-        ? this.harness.endAfter
-        : song.total !== null
-          ? songEndTime(song.total, song.barDur)
-          : undefined;
-    const beat = song.sd * 4;
-    const leadIn = 0.35 + 4 * beat;
-    const songStart = t.now() + leadIn;
+    // Harness: end the run `end` seconds after the first bar played (Practice starts mid-song).
+    if (this.harness.endAfter !== null)
+      endTime = (fromBar * song.barDur) / rate + this.harness.endAfter;
+    const beat = (song.sd * 4) / rate;
+    // Count-in: four beats before the first bar played; bar 0 of the clock sits before that.
+    const songStart = t.now() + 0.35 + 4 * beat - (fromBar * song.barDur) / rate;
     t.start({
       seed: sel.seed,
       mood: sel.mood,
       mode: sel.mode,
       startTime: songStart,
       countIn: true,
+      ...(fromBar ? { fromBar } : {}),
+      ...(toBar !== undefined ? { toBar } : {}),
+      ...(rate !== 1 ? { rate } : {}),
+      ...(practice ? { loop: true } : {}),
     });
     t.clock.startSong(songStart);
 
-    const scene = stage.setScene(this.sceneOptions(song, sel.mood));
+    const scene = stage.setScene(this.sceneOptions(sceneSong, sel.mood));
     this.idleScene = null;
     this.idleKey = '';
     const run = new PlayRun(
@@ -426,7 +607,7 @@ export class GameController {
         speed: s.noteSpeed,
         noFail,
         ...(endTime !== undefined ? { endTime } : {}),
-        bars: builder ? builder.nextBar : (song.total ?? 0),
+        bars: song.total ?? 0,
       },
       notes,
     );
@@ -451,11 +632,14 @@ export class GameController {
       (e) => this.onInput(e),
     );
     this.current = {
+      kind,
       song,
+      sceneSong,
       run,
       scene,
       bot,
-      builder,
+      lookahead,
+      peakLevel,
       endTime,
       startedAt: performance.now(),
       songStart,
@@ -463,9 +647,14 @@ export class GameController {
       resumeAt: 0,
       beat,
       detach,
-      approachBase: APPROACH_BASE[sel.difficulty] / s.noteSpeed,
+      approachBase,
       idleHandle: 0,
-      t: -leadIn,
+      t: (fromBar * song.barDur) / rate - 4 * beat,
+      practice: practiceInfo,
+      prompts,
+      difficulty: sel.difficulty,
+      noFail,
+      fedBack: 0,
     };
     this.hudKey = '';
     this.lastEnded = false;
@@ -474,12 +663,14 @@ export class GameController {
     hudHealth.value = 1;
     hudProgress.value = 0;
     hudSection.value = 'Get ready';
+    hudPrompt.value = prompts[0]?.text ?? '';
+    hudTutorial.value = kind === 'tutorial';
     countdown.value = 0;
     screen.value = 'playing';
-    this.store.addRecent(sel.seed);
+    if (kind !== 'tutorial') this.store.addRecent(sel.seed);
     this.ensureLoop();
     this.applyFrameCap();
-    if (builder) this.scheduleLookahead();
+    if (lookahead) this.scheduleLookahead();
     this.exposePerfHooks();
   }
 
@@ -487,26 +678,36 @@ export class GameController {
     const c = this.current;
     if (!c || screen.value !== 'playing' || countdown.value) return;
     c.run.input(e);
-    if (e.down && this.settings.hitSounds && this.transport) {
-      const ev = c.run.session.events.at(-1);
-      if (ev && Math.abs(ev.t - c.run.session.time) < 0.2)
+    this.feedback(c, true);
+  }
+
+  /**
+   * Feedback for judgements not yet fed back: hit sound (only straight from an input, so it keeps
+   * the one-block latency budget) and haptics. Misses declared by the frame loop get haptics only.
+   */
+  private feedback(c: Run, fromInput: boolean): void {
+    const ev = c.run.session.events;
+    for (; c.fedBack < ev.length; c.fedBack++) {
+      const j = ev[c.fedBack]!.judgement;
+      if (fromInput && this.settings.hitSounds && this.transport)
         this.transport.hitSound(
-          ev.judgement === 'miss' || ev.judgement === 'drop'
+          j === 'miss' || j === 'drop'
             ? 'miss'
-            : (ev.judgement.replace(/^r/, '') as 'perfect' | 'great' | 'good'),
+            : (j.replace(/^r/, '') as 'perfect' | 'great' | 'good'),
         );
+      if (this.settings.haptics) this.haptics.pulse(hapticFor(j));
     }
   }
 
   private scheduleLookahead(): void {
     const c = this.current;
-    if (!c || !c.builder) return;
+    if (!c || !c.lookahead) return;
     const cb = (): void => {
       const cur = this.current;
-      if (!cur || cur !== c || !cur.builder) return;
-      // Keep bars charted up to approach + 5 s ahead of the playhead (ARCHITECTURE.md §3).
-      while (cur.builder.nextBar * cur.song.barDur < cur.t + cur.approachBase + 5) {
-        const notes = cur.builder.next();
+      if (!cur || cur !== c || !cur.lookahead) return;
+      // Keep notes charted up to approach + 5 s ahead of the playhead (ARCHITECTURE.md §3).
+      while (cur.lookahead.needMore(cur.t)) {
+        const notes = cur.lookahead.next();
         appendNotes(cur.run.session, notes);
         cur.bot?.append(notes);
       }
@@ -522,7 +723,6 @@ export class GameController {
       const scene = this.idleScene;
       if (scene) {
         const t = performance.now() / 1000 - this.idleT0;
-        const song = this.idleSong!;
         const lt = listening.value && this.transport ? this.transport.clock.songTime(now) : t;
         scene.update({
           t: lt,
@@ -532,7 +732,6 @@ export class GameController {
           paused: false,
           idle: true,
         });
-        void song;
         this.stage?.render();
       }
       return;
@@ -561,24 +760,34 @@ export class GameController {
           (e) => c.run.input(e),
         );
       if (this.gamepadActive()) pollGamepads(this.gamepad, now, (e) => this.onInput(e));
+      this.feedback(c, false);
     }
     c.t = t;
     const song = c.song;
-    const bar = Math.max(0, Math.floor(t / song.barDur));
+    // Song bar at the draw clock; Practice wraps it into the looped section.
+    const rawBar = Math.max(0, Math.floor(t / c.sceneSong.barDur));
+    const p = c.practice;
+    const loop = p ? Math.max(0, Math.floor((rawBar - p.fromBar) / p.len)) : 0;
+    const bar = p && rawBar >= p.fromBar ? p.fromBar + ((rawBar - p.fromBar) % p.len) : rawBar;
     const approach =
       song.total === null
-        ? approachAt(song, selection.value.difficulty, bar) / this.settings.noteSpeed
+        ? approachAt(song, c.difficulty, bar) / this.settings.noteSpeed
         : c.approachBase;
+    // Practice starts mid-song, so the scene cannot infer the count-in from t < 0: pass it.
+    const sectionStart = p ? (p.fromBar * song.barDur) / p.rate : 0;
+    const preCount =
+      p && t < sectionStart && !paused ? Math.min(4, Math.ceil((sectionStart - t) / c.beat)) : 0;
     c.scene.update({
       t: t - this.settings.visualOffsetMs / 1000,
       perf: now / 1000,
       approach,
       session: c.run.session,
       paused,
-      countdown: countdown.value,
+      countdown: countdown.value || preCount,
+      ...(p ? { sectionBar: bar } : {}),
     });
     this.stage!.render();
-    this.updateHud(t, bar);
+    this.updateHud(t, bar, loop);
     if (this.diag?.visible && this.loop) this.updateDiag(now);
     if (c.run.session.ended && !this.lastEnded) {
       this.lastEnded = true;
@@ -599,27 +808,42 @@ export class GameController {
     );
   }
 
-  private updateHud(t: number, bar: number): void {
+  private updateHud(t: number, bar: number, loop: number): void {
     const c = this.current!;
     const s = c.run.session;
     const acc = s.accN ? (s.accSum / s.accN) * 100 : 100;
-    const key = `${s.score}|${acc.toFixed(1)}|${t < 0 ? -1 : bar}`;
+    const key = `${s.score}|${acc.toFixed(1)}|${t < 0 ? -1 : bar}|${loop}`;
     if (key !== this.hudKey) {
       this.hudKey = key;
       hudScore.value = s.score;
       hudAcc.value = `${acc.toFixed(1)}%`;
-      hudSection.value = sectionText(
-        c.song,
-        t,
-        c.song.total === null ? levelAt(c.song, selection.value.difficulty, bar) : undefined,
-      );
+      const p = c.practice;
+      const started = p ? t >= (p.fromBar * c.song.barDur) / p.rate : t >= 0;
+      hudSection.value = !started
+        ? 'Get ready'
+        : p
+          ? practiceText(p.label, loop, p.rate)
+          : sectionText(
+              c.song,
+              t,
+              c.song.total === null ? levelAt(c.song, c.difficulty, bar) : undefined,
+            );
+      if (c.prompts.length) {
+        let text = c.prompts[0]!.text;
+        if (t >= 0) for (const pr of c.prompts) if (bar >= pr.bar) text = pr.text;
+        if (text !== hudPrompt.value) hudPrompt.value = text;
+      }
     }
     const hp = Math.round(s.health * 2) / 200;
     if (hp !== hudHealth.value) hudHealth.value = hp;
-    const pv = c.song.total
-      ? Math.round(Math.min(1, Math.max(0, t / (c.song.total * c.song.barDur))) * 400) / 400
-      : 0;
-    if (pv !== hudProgress.value) hudProgress.value = pv;
+    let pv = 0;
+    if (c.endTime) pv = t / c.endTime;
+    else if (c.practice) {
+      const barsIn = (t * c.practice.rate) / c.song.barDur - c.practice.fromBar;
+      pv = barsIn < 0 ? 0 : (barsIn % c.practice.len) / c.practice.len;
+    }
+    pv = Math.round(Math.min(1, Math.max(0, pv)) * 400) / 400;
+    if (pv !== hudProgress.value) hudProgress.value = Math.min(1, Math.max(0, pv));
   }
 
   private updateDiag(now: number): void {
@@ -664,10 +888,11 @@ export class GameController {
   }
 
   restart(): void {
+    const tutorial = this.current?.kind === 'tutorial';
     const sel = selection.value;
     this.teardownRun();
     selection.value = { ...sel };
-    void this.startRun();
+    void this.startRun(tutorial);
   }
 
   quit(): void {
@@ -684,17 +909,29 @@ export class GameController {
     this.transport?.stop();
     this.current = null;
     countdown.value = 0;
+    hudPrompt.value = '';
+    hudTutorial.value = false;
   }
 
   private finish(): void {
     const c = this.current;
     if (!c) return;
     const sel = selection.value;
+    const kind = c.kind;
     const summary = summarize(c.run.session);
     const gen = CURRENT_GENERATOR_VERSION;
     const key = songKey(gen, sel.mood, sel.mode, sel.difficulty, sel.seed);
-    const endless = c.song.total === null;
+    const endless = kind === 'endless';
+    const scored = kind !== 'practice' && kind !== 'tutorial';
     const bars = endless ? Math.max(0, Math.floor(c.t / c.song.barDur)) : undefined;
+    const loops = c.practice
+      ? Math.max(
+          0,
+          Math.floor(
+            ((c.t * c.practice.rate) / c.song.barDur - c.practice.fromBar) / c.practice.len,
+          ),
+        )
+      : undefined;
     const stars = starsFor(
       summary.grade,
       summary.fullCombo,
@@ -703,7 +940,7 @@ export class GameController {
     );
     const noFailUsed = this.settings.noFail || this.harness.noFail;
     // A failed Song run never records a best (prototype behaviour); Endless always can.
-    const eligible = !noFailUsed && (endless || !summary.failed);
+    const eligible = scored && !noFailUsed && (endless || !summary.failed);
     const isBest =
       eligible &&
       this.store.recordBest(key, {
@@ -715,12 +952,48 @@ export class GameController {
         at: Date.now(),
         ...(bars !== undefined ? { bars } : {}),
       });
+    const day = this.today();
+    const cleared = !endless && !summary.failed && !noFailUsed && scored;
+    const levelBefore = this.store.save.profile.level;
+    let streak: number | undefined;
     this.store.update((s) => {
       s.profile.plays++;
       s.profile.playSec += Math.round((performance.now() - c.startedAt) / 1000);
-      s.profile.xp += Math.round(summary.score / 100);
-      s.profile.level = 1 + Math.floor(Math.sqrt(s.profile.xp / 500));
+      if (scored) {
+        s.profile.xp += xpFromScore(summary.score);
+        s.profile.level = levelFor(s.profile.xp);
+      }
+      if (kind === 'practice') s.profile.practiceRuns++;
+      if (kind === 'tutorial') s.profile.tutorialDone = true;
+      if (kind === 'daily' && eligible) {
+        const prev = s.daily[day];
+        if (!prev || summary.score > prev.score)
+          s.daily[day] = { score: summary.score, grade: summary.grade, difficulty: sel.difficulty };
+        s.streak = nextStreak(s.streak, day);
+        streak = s.streak.current;
+      }
     });
+    const finished: FinishedRun = {
+      selection: sel,
+      summary,
+      grade: summary.grade,
+      cleared,
+      bars: bars ?? 0,
+      daily: kind === 'daily',
+      practice: kind === 'practice',
+      tutorial: kind === 'tutorial',
+      day,
+    };
+    const earned = newAchievements(this.store.save, finished);
+    if (earned.length) {
+      this.store.update((s) => s.profile.achievements.push(...earned));
+      this.ui('unlock');
+      showToast(
+        `Achievement${earned.length > 1 ? 's' : ''}: ${earned.map((id) => achievementById(id)?.name ?? id).join(', ')}`,
+        4000,
+      );
+    }
+    const levelAfter = this.store.save.profile.level;
     results.value = {
       summary,
       selection: sel,
@@ -728,10 +1001,16 @@ export class GameController {
       bpm: c.song.bpm,
       isBest,
       events: c.run.session.events,
-      durationSec: endless ? c.t : c.song.total! * c.song.barDur,
-      ...(bars !== undefined ? { bars, peakLevel: c.builder?.peakLevel ?? 0 } : {}),
+      durationSec: endless || c.practice ? c.t : (c.endTime ?? c.t),
+      ...(bars !== undefined ? { bars, peakLevel: c.peakLevel() } : {}),
       grade: endless ? summary.grade : summary.failed ? 'F' : summary.grade,
       stars,
+      kind,
+      ...(loops !== undefined ? { loops } : {}),
+      ...(streak !== undefined ? { streak } : {}),
+      achievements: earned,
+      levelUp: levelAfter > levelBefore ? levelAfter : null,
+      recorded: eligible,
     };
     this.teardownRun();
     screen.value = 'results';
@@ -739,14 +1018,16 @@ export class GameController {
 
   /* ----------------------------------------------------------- overlays */
   openOverlay(which: 'settings' | 'calibration' | 'profile'): void {
-    const sc = screen.value;
-    if (sc === 'playing') this.pause();
-    returnTo.value = screen.value === 'paused' ? 'paused' : sc === 'playing' ? 'paused' : sc;
+    if (screen.value === 'playing') this.pause();
+    // Overlays nest (Settings → Calibration): remember where each one opened from.
+    returnStack.value = [...returnStack.value, screen.value];
     screen.value = which;
   }
 
   closeOverlay(): void {
-    const back = returnTo.value;
+    const stack = returnStack.value;
+    const back = stack.at(-1) ?? 'select';
+    returnStack.value = stack.slice(0, -1);
     this.applyVolumes();
     this.applyFrameCap();
     if (this.stage) {
@@ -755,7 +1036,10 @@ export class GameController {
     }
     if (this.diag) this.diag.visible = this.settings.diagnostics;
     screen.value = back;
-    if (back === 'select' || back === 'title') void this.ensureIdle();
+    if (back === 'select' || back === 'title') {
+      this.idleKey = ''; // cosmetics or palette may have changed
+      void this.ensureIdle();
+    }
   }
 
   /* ----------------------------------------------------------- calibration */
@@ -805,6 +1089,10 @@ export class GameController {
   /** e2e hooks. */
   get currentScreen(): Screen {
     return screen.value;
+  }
+
+  get currentKind(): RunKind | null {
+    return this.current?.kind ?? null;
   }
 }
 

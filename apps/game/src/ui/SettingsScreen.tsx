@@ -1,8 +1,52 @@
 import { useState } from 'preact/hooks';
 import { controller } from '../app/controller';
-import { settings, showToast } from '../app/state';
+import { HIGHWAY_LIST, NOTE_SKIN_LIST, unlocked, type Cosmetic } from '../app/progression';
+import { save, settings, showToast } from '../app/state';
 import type { FrameCap, LanePalette, QualityMode } from '../save/schema';
 import { Choice, Range, Screen, Toggle } from './components';
+import { LatencyTest } from './LatencyTest';
+
+/** Cosmetic picker: locked entries show the level that unlocks them. */
+function CosmeticChoice<T extends string>({
+  label,
+  value,
+  list,
+  level,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  list: readonly Cosmetic<T>[];
+  level: number;
+  onChange: (v: T) => void;
+}) {
+  const current = list.find((c) => c.id === value);
+  return (
+    <div class="setting">
+      <div>
+        <div class="name">{label}</div>
+        <div class="desc">{current?.desc}</div>
+      </div>
+      <div class="seg" role="group" aria-label={label}>
+        {list.map((c) => {
+          const open = unlocked(c, level);
+          return (
+            <button
+              key={c.id}
+              type="button"
+              aria-pressed={c.id === value}
+              disabled={!open}
+              aria-label={open ? c.name : `${c.name}, unlocks at level ${c.level}`}
+              onClick={() => onChange(c.id)}
+            >
+              {open ? c.name : `${c.name} · L${c.level}`}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 const KEY_LABEL = (code: string): string =>
   code
@@ -12,6 +56,7 @@ const KEY_LABEL = (code: string): string =>
 
 export function SettingsScreen() {
   const s = settings.value;
+  const level = save.value.profile.level;
   const set = (patch: Partial<typeof s>): void => controller.store.setSettings(patch);
   const [listening, setListening] = useState<number | null>(null);
   const captureKey = (lane: number): void => {
@@ -99,6 +144,21 @@ export function SettingsScreen() {
         ]}
         onChange={(judgementTextSize) => set({ judgementTextSize })}
       />
+      <h3>Cosmetics</h3>
+      <CosmeticChoice
+        label="Note skin"
+        value={s.noteSkin}
+        list={NOTE_SKIN_LIST}
+        level={level}
+        onChange={(noteSkin) => set({ noteSkin })}
+      />
+      <CosmeticChoice
+        label="Highway"
+        value={s.highwayStyle}
+        list={HIGHWAY_LIST}
+        level={level}
+        onChange={(highwayStyle) => set({ highwayStyle })}
+      />
       <h3>Timing</h3>
       <Range
         label="Audio offset"
@@ -130,6 +190,7 @@ export function SettingsScreen() {
           Run calibration
         </button>
       </div>
+      <LatencyTest />
       <h3>Audio</h3>
       <Range
         label="Master volume"
@@ -169,6 +230,12 @@ export function SettingsScreen() {
         desc="Light tick on hit, stronger on miss (mobile)"
         checked={s.haptics}
         onChange={(haptics) => set({ haptics })}
+      />
+      <Toggle
+        label="Menu sounds"
+        desc="Short synth blips on buttons"
+        checked={s.menuSounds}
+        onChange={(menuSounds) => set({ menuSounds })}
       />
       <h3>Controls</h3>
       <div class="setting">
@@ -232,6 +299,23 @@ export function SettingsScreen() {
         checked={s.diagnostics}
         onChange={(diagnostics) => controller.setDiagnostics(diagnostics)}
       />
+      <h3>Help</h3>
+      <div class="setting">
+        <div>
+          <div class="name">Tutorial</div>
+          <div class="desc">Taps, chords and holds, then a short song</div>
+        </div>
+        <button
+          type="button"
+          class="btn small"
+          onClick={() => {
+            controller.closeOverlay();
+            void controller.startTutorial();
+          }}
+        >
+          Replay tutorial
+        </button>
+      </div>
       <h3>Data</h3>
       <div class="btnrow">
         <button type="button" class="btn" onClick={exportSave}>

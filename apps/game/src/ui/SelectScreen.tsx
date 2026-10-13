@@ -4,16 +4,20 @@ import {
   CURRENT_GENERATOR_VERSION,
   MOODS,
   MOOD_IDS,
+  PRACTICE_RATES,
   makeSong,
   type Difficulty,
   type MoodId,
-  type Mode,
+  type PracticeRate,
 } from '@seedbeat/core';
 import { controller } from '../app/controller';
-import { DIFF_LABEL, MOOD_LABEL, randomSeed, songMeta } from '../app/format';
-import { listening, save, selection } from '../app/state';
+import { currentStreak, isDaily } from '../app/daily';
+import { DIFF_LABEL, MOOD_LABEL, randomSeed, sectionChoices, songMeta } from '../app/format';
+import { listening, save, selection, type Selection } from '../app/state';
 import { songKey } from '../save/schema';
 import { Segmented } from './components';
+
+type PlayMode = 'song' | 'endless' | 'practice';
 
 export function SelectScreen() {
   const h = useRef<HTMLHeadingElement>(null);
@@ -30,10 +34,33 @@ export function SelectScreen() {
       songKey(CURRENT_GENERATOR_VERSION, sel.mood, sel.mode, sel.difficulty, sel.seed)
     ];
   const fav = save.value.favourites.includes(sel.seed);
-  const set = (patch: Partial<typeof sel>): void => {
+  const today = controller.today();
+  const daily = isDaily(sel, today);
+  const dailyBest = save.value.daily[today];
+  const streak = currentStreak(save.value.streak, today);
+  const playMode: PlayMode = sel.practice ? 'practice' : sel.mode;
+  const sections = sel.practice && song.total !== null ? sectionChoices(song) : [];
+  const set = (patch: Partial<Selection>): void => {
     selection.value = { ...selection.value, ...patch };
     void controller.ensureIdle();
     if (listening.value) void controller.listen(false);
+  };
+  const setMode = (m: PlayMode): void => {
+    if (m === 'practice') {
+      const chorus = song.sections.findIndex((x) => x.type === 'chorus');
+      set({
+        mode: 'song',
+        practice: sel.practice ?? { section: Math.max(0, chorus), rate: 0.75 },
+      });
+    } else {
+      const { practice: _drop, ...rest } = selection.value;
+      selection.value = { ...rest, mode: m };
+      void controller.ensureIdle();
+    }
+  };
+  const play = (): void => {
+    if (controller.needsTutorial()) void controller.startTutorial();
+    else void controller.startRun();
   };
   return (
     <section class="screen" id="select" aria-labelledby="select-title">
@@ -69,14 +96,15 @@ export function SelectScreen() {
           </div>
         </fieldset>
         <div class="row2">
-          <Segmented<Mode>
+          <Segmented<PlayMode>
             label="Mode"
-            value={sel.mode}
+            value={playMode}
             options={[
               { value: 'song', label: 'Song' },
               { value: 'endless', label: 'Endless' },
+              { value: 'practice', label: 'Practice' },
             ]}
-            onChange={(mode) => set({ mode })}
+            onChange={setMode}
           />
           <Segmented<Difficulty>
             label="Difficulty"
@@ -85,6 +113,32 @@ export function SelectScreen() {
             onChange={(difficulty) => set({ difficulty })}
           />
         </div>
+        {sel.practice && (
+          <div class="row2">
+            <fieldset>
+              <legend>Section</legend>
+              <div class="chips" role="group" aria-label="Section">
+                {sections.map((c) => (
+                  <button
+                    key={c.index}
+                    type="button"
+                    class="chip"
+                    aria-pressed={c.index === sel.practice!.section}
+                    onClick={() => set({ practice: { ...sel.practice!, section: c.index } })}
+                  >
+                    {c.label} · {c.bars} bars
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <Segmented<PracticeRate>
+              label="Tempo"
+              value={sel.practice.rate}
+              options={PRACTICE_RATES.map((r) => ({ value: r, label: `${Math.round(r * 100)}%` }))}
+              onChange={(rate) => set({ practice: { ...sel.practice!, rate } })}
+            />
+          </div>
+        )}
         <fieldset>
           <legend>
             <label for="seed">Seed</label>
@@ -116,14 +170,23 @@ export function SelectScreen() {
         <div class="readout" aria-live="polite">
           <div class="name">{song.name}</div>
           <div class="meta">{songMeta(song)}</div>
+          {daily && (
+            <div class="meta daily">
+              Daily seed for {today} · everyone plays this song today
+              {streak > 0 ? ` · ${streak}-day streak` : ''}
+              {dailyBest ? ` · today's best ${dailyBest.score.toLocaleString()}` : ''}
+            </div>
+          )}
           <div class="best">
-            {best
-              ? `Best ${best.score.toLocaleString()} · ${best.grade} · ${(best.acc * 100).toFixed(1)}%${best.fc ? ' · FC' : ''}`
-              : 'No score yet on this seed.'}
+            {sel.practice
+              ? 'Practice runs are not scored.'
+              : best
+                ? `Best ${best.score.toLocaleString()} · ${best.grade} · ${(best.acc * 100).toFixed(1)}%${best.fc ? ' · FC' : ''} · ${'★'.repeat(best.stars)}${'☆'.repeat(5 - best.stars)}`
+                : 'No score yet on this seed.'}
           </div>
         </div>
         <div class="actions">
-          <button type="button" class="btn primary" onClick={() => void controller.startRun()}>
+          <button type="button" class="btn primary" onClick={play}>
             PLAY
           </button>
           <button
@@ -160,6 +223,9 @@ export function SelectScreen() {
           </fieldset>
         )}
         <div class="menurow">
+          <button type="button" class="btn small" onClick={() => controller.goDaily()}>
+            Daily
+          </button>
           <button
             type="button"
             class="btn small"

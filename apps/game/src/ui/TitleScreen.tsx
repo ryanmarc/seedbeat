@@ -7,6 +7,10 @@ export function TitleScreen() {
   useEffect(() => {
     h.current?.focus();
   }, []);
+  const go = (fn: () => void): void => {
+    controller.warmAudio();
+    fn();
+  };
   return (
     <section class="screen" id="title" aria-labelledby="title-h1">
       <div class="panel">
@@ -20,17 +24,32 @@ export function TitleScreen() {
           </p>
         </header>
         <div class="menurow">
-          <button type="button" class="btn primary" onClick={() => (screen.value = 'select')}>
+          <button
+            type="button"
+            class="btn primary"
+            onClick={() => go(() => (screen.value = 'select'))}
+          >
             PLAY
           </button>
-          <button type="button" class="btn" onClick={() => controller.openOverlay('profile')}>
+          <button type="button" class="btn" onClick={() => go(() => controller.goDaily())}>
+            Daily
+          </button>
+          <button type="button" class="btn" onClick={() => go(() => controller.goPractice())}>
+            Practice
+          </button>
+        </div>
+        <div class="menurow">
+          <button type="button" class="btn small" onClick={() => controller.openOverlay('profile')}>
             Profile
           </button>
-          <button type="button" class="btn" onClick={() => controller.openOverlay('settings')}>
+          <button
+            type="button"
+            class="btn small"
+            onClick={() => controller.openOverlay('settings')}
+          >
             Settings
           </button>
         </div>
-        <p class="hint">Daily and Practice modes arrive in the next milestone.</p>
       </div>
     </section>
   );

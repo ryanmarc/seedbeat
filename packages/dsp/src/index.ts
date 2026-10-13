@@ -16,12 +16,14 @@ export {
   eventTriggers,
   countInTrigger,
   hitSoundTriggers,
+  uiSoundTriggers,
   MOOD_MIX,
   type Mood,
   type MoodMix,
   type MusicEvent,
   type Trigger,
   type Judgement,
+  type UiSound,
 } from './presets';
 export { Oscillator, type Wave } from './osc';
 export { Biquad, type BiquadType } from './biquad';

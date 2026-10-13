@@ -9,6 +9,7 @@ import type {
   Grade,
   MoodId,
   Mode,
+  PracticeRate,
   SessionSummary,
   JudgementEvent,
 } from '@seedbeat/core';
@@ -30,7 +31,11 @@ export interface Selection {
   mode: Mode;
   difficulty: Difficulty;
   seed: string;
+  /** Practice (PRD §3): loop one section of the Song-mode chart, optionally slowed. */
+  practice?: { section: number; rate: PracticeRate };
 }
+
+export type RunKind = 'song' | 'endless' | 'daily' | 'practice' | 'tutorial';
 
 export interface RunResult {
   summary: SessionSummary;
@@ -46,11 +51,22 @@ export interface RunResult {
   peakLevel?: number;
   grade: Grade;
   stars: number;
+  kind: RunKind;
+  /** Practice: completed loops of the section. */
+  loops?: number;
+  /** Daily: streak after this run. */
+  streak?: number;
+  /** Achievement ids earned by this run. */
+  achievements: string[];
+  /** New player level when this run levelled up. */
+  levelUp: number | null;
+  /** Score was recorded (not practice, tutorial, no-fail or a failed song). */
+  recorded: boolean;
 }
 
 export const screen = signal<Screen>('boot');
-/** Screen to return to when an overlay (settings, calibration, profile) closes. */
-export const returnTo = signal<Screen>('select');
+/** Screens to return to as overlays (settings, calibration, profile) close, innermost last. */
+export const returnStack = signal<Screen[]>([]);
 export const selection = signal<Selection>({
   mood: 'synthwave',
   mode: 'song',
@@ -71,6 +87,10 @@ export const hudAcc = signal('100.0%');
 export const hudSection = signal('Get ready');
 export const hudHealth = signal(1);
 export const hudProgress = signal(0);
+/** Tutorial prompt text ('' when none). */
+export const hudPrompt = signal('');
+/** The current run is the tutorial (HUD shows Skip). */
+export const hudTutorial = signal(false);
 
 export function showToast(message: string, ms = 2200): void {
   toast.value = message;

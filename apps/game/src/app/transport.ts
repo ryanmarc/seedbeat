@@ -3,7 +3,7 @@
  * harnesses and tests. Both expose the same clock so the game code never branches on audio.
  */
 import type { MoodId, Mode } from '@seedbeat/core';
-import type { Judgement } from '@seedbeat/worklet/protocol';
+import type { Judgement, UiSound } from '@seedbeat/worklet/protocol';
 import { GameClock, audioSourceFromContext } from '../engine/clock';
 import { PerformanceAudioSource } from '../engine/fake-audio';
 import { AudioEngine } from '../platform/audio';
@@ -18,6 +18,7 @@ export interface StartOptions {
   fromBar?: number;
   toBar?: number;
   rate?: number;
+  loop?: boolean;
 }
 
 export interface Transport {
@@ -32,7 +33,8 @@ export interface Transport {
   stop(): void;
   clicks(startTime: number, count: number, interval: number): void;
   hitSound(j: Judgement): void;
-  setVolumes(v: { master?: number; music?: number; hit?: number }): void;
+  ui(sound: UiSound): void;
+  setVolumes(v: { master?: number; music?: number; hit?: number; ui?: number }): void;
   onEnded(fn: () => void): () => void;
 }
 
@@ -64,6 +66,7 @@ export class WorkletTransport implements Transport {
       ...(o.fromBar !== undefined ? { fromBar: o.fromBar } : {}),
       ...(o.toBar !== undefined ? { toBar: o.toBar } : {}),
       ...(o.rate !== undefined ? { rate: o.rate } : {}),
+      ...(o.loop !== undefined ? { loop: o.loop } : {}),
     });
   }
   pause(): void {
@@ -83,7 +86,10 @@ export class WorkletTransport implements Transport {
   hitSound(j: Judgement): void {
     this.engine.send({ type: 'hitSound', judgement: j });
   }
-  setVolumes(v: { master?: number; music?: number; hit?: number }): void {
+  ui(sound: UiSound): void {
+    this.engine.send({ type: 'ui', sound });
+  }
+  setVolumes(v: { master?: number; music?: number; hit?: number; ui?: number }): void {
     this.engine.send({ type: 'volumes', ...v });
   }
   onEnded(fn: () => void): () => void {
@@ -119,6 +125,7 @@ export class SilentTransport implements Transport {
   stop(): void {}
   clicks(): void {}
   hitSound(): void {}
+  ui(): void {}
   setVolumes(): void {}
   onEnded(fn: () => void): () => void {
     this.endedListeners.add(fn);
