@@ -4,9 +4,14 @@ name: Deploy to gh-pages
 # at that branch (Settings → Pages → Deploy from a branch → gh-pages, / root). The app is served
 # from https://<owner>.github.io/<repo>/, so the build uses that subpath as its base. Set a
 # repository variable SEEDBEAT_BASE=/ if you later attach a custom domain at the site root.
+#
+# Runs after the CI workflow (matched by its `name`) completes on main, and only when it
+# succeeded, building the exact commit CI tested. `workflow_dispatch` redeploys by hand.
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -19,10 +24,13 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: pnpm/action-setup@v6
 
@@ -46,7 +54,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -q -m "Deploy ${GITHUB_SHA} from ${GITHUB_REF_NAME}"
+          git commit -q -m "Deploy $(git -C "$GITHUB_WORKSPACE" rev-parse HEAD) from main"
           git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -66,8 +66,9 @@ copy and download.
 
 ### Deploying to GitHub Pages
 
-`.github/workflows/pages.yml` builds on every push to `main` and force-pushes `apps/game/dist`
-to the `gh-pages` branch. Once: Settings → Pages → "Deploy from a branch" → `gh-pages`, folder
+`.github/workflows/pages.yml` runs after the CI workflow succeeds on `main`, builds that exact
+commit and force-pushes `apps/game/dist` to the `gh-pages` branch (it can also be run by hand
+from the Actions tab). Once: Settings → Pages → "Deploy from a branch" → `gh-pages`, folder
 `/ (root)`. The site is then at `https://<owner>.github.io/<repo>/`. The build's base path is set
 with `SEEDBEAT_BASE` (the workflow derives `/<repo>/`; set a repository variable `SEEDBEAT_BASE=/`
 for a custom domain at the root). Locally, `SEEDBEAT_BASE=/seedbeat/ pnpm build` then
