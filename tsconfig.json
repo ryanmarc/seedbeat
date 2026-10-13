@@ -1,10 +1,23 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/core" },
-    { "path": "packages/dsp" },
-    { "path": "packages/worklet" },
-    { "path": "apps/game" },
-    { "path": "tools" }
+    {
+      "path": "packages/core"
+    },
+    {
+      "path": "packages/dsp"
+    },
+    {
+      "path": "packages/worklet"
+    },
+    {
+      "path": "apps/game"
+    },
+    {
+      "path": "apps/game/sw"
+    },
+    {
+      "path": "tools"
+    }
   ]
 }

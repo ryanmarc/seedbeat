@@ -33,6 +33,8 @@ import { GamepadLanes, type LaneEvent } from '../engine/input';
 import { GameLoop, summarizeStats } from '../engine/loop';
 import { PlayRun } from '../engine/play';
 import { NO_HAPTICS, WebHaptics, hapticFor, type Haptics } from '../platform/haptics';
+import { watchPage } from '../platform/lifecycle';
+import { WakeLockKeeper } from '../platform/wake-lock';
 import { DiagnosticsOverlay } from '../render/diagnostics';
 import { Stage } from '../render/stage';
 import type { Scene } from '../render/scene';
@@ -54,7 +56,9 @@ import {
   hudSection,
   hudTutorial,
   listening,
+  pauseReason,
   results,
+  type PauseReason,
   returnStack,
   save as saveSignal,
   screen,
@@ -150,6 +154,8 @@ export class GameController {
   readonly store: SaveStore;
   harness: Harness;
   haptics: Haptics = NO_HAPTICS;
+  /** Screen Wake Lock while playing (M7). */
+  readonly wakeLock = new WakeLockKeeper();
   private canvas: HTMLCanvasElement | null = null;
   private stage: Stage | null = null;
   private transport: Transport | null = null;
@@ -196,8 +202,13 @@ export class GameController {
     this.diag = new DiagnosticsOverlay(document.body);
     this.diag.visible = s.settings.diagnostics || this.harness.diag;
     window.addEventListener('keydown', (e) => this.onGlobalKey(e));
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden && screen.value === 'playing') this.pause();
+    // Backgrounding (app switch, lock screen, bfcache) pauses the run; the lock is re-taken on return.
+    watchPage({
+      hidden: () => {
+        if (screen.value === 'playing') this.pause('background');
+        this.wakeLock.onVisibility();
+      },
+      visible: () => this.wakeLock.onVisibility(),
     });
     window.addEventListener('resize', () => this.onResize());
     // Menu sounds and primary-button haptics (DESIGN.md §6), one delegated listener.
@@ -231,7 +242,7 @@ export class GameController {
       this.pause();
     } else if (sc === 'paused' && e.code === 'Escape') {
       e.preventDefault();
-      this.resume();
+      void this.resume();
     } else if (
       (sc === 'settings' || sc === 'profile' || sc === 'calibration') &&
       e.code === 'Escape'
@@ -362,6 +373,11 @@ export class GameController {
     }
     const t = this.harness.audio ? await WorkletTransport.create() : new SilentTransport();
     this.transport = t;
+    t.watchState({
+      interrupted: () => this.onAudioInterrupted(),
+      running: () => {},
+      closed: () => this.onAudioClosed(),
+    });
     t.setVolumes(this.volumes());
     t.clock.audioOffset = this.settings.audioOffsetMs / 1000;
     audioReady.value = true;
@@ -391,6 +407,27 @@ export class GameController {
         5000,
       );
       return null;
+    }
+  }
+
+  /** The OS took the output (call, Siri, another app): pause and wait for a tap to resume. */
+  private onAudioInterrupted(): void {
+    if (screen.value === 'playing') {
+      this.pause('audio');
+    } else if (listening.value) {
+      void this.listen(false);
+    }
+  }
+
+  /** The context is gone for good (rare): drop the engine; the next Play rebuilds it. */
+  private onAudioClosed(): void {
+    this.transport = null;
+    audioReady.value = false;
+    if (this.current) {
+      this.teardownRun();
+      screen.value = 'select';
+      void this.ensureIdle();
+      showToast('Sound stopped. Press Play to start the song again.', 5000);
     }
   }
 
@@ -666,7 +703,9 @@ export class GameController {
     hudPrompt.value = prompts[0]?.text ?? '';
     hudTutorial.value = kind === 'tutorial';
     countdown.value = 0;
+    pauseReason.value = 'user';
     screen.value = 'playing';
+    void this.wakeLock.hold();
     if (kind !== 'tutorial') this.store.addRecent(sel.seed);
     this.ensureLoop();
     this.applyFrameCap();
@@ -862,21 +901,31 @@ export class GameController {
     });
   }
 
-  pause(): void {
+  pause(reason: PauseReason = 'user'): void {
     const c = this.current;
     if (!c || screen.value !== 'playing') return;
     c.pausedSongTime = countdown.value ? c.pausedSongTime : c.t;
     countdown.value = 0;
     c.run.pause();
     this.transport!.pause();
+    pauseReason.value = reason;
     screen.value = 'paused';
+    void this.wakeLock.release();
   }
 
-  /** Resume with a 3-beat countdown synced to the music (PRD §2). */
-  resume(): void {
+  /**
+   * Resume with a 3-beat countdown synced to the music (PRD §2). First brings the AudioContext
+   * back if the OS suspended it (this runs from the Resume tap, which iOS requires).
+   */
+  async resume(): Promise<void> {
     const c = this.current;
     if (!c || screen.value !== 'paused') return;
     const t = this.transport!;
+    if (!(await t.ensureRunning())) {
+      showToast('Sound is paused. Tap Resume again.');
+      return;
+    }
+    if (this.current !== c || screen.value !== 'paused') return;
     const beatsAhead = 3;
     const resumeAt = t.now() + beatsAhead * c.beat + 0.05;
     c.resumeAt = resumeAt;
@@ -885,6 +934,7 @@ export class GameController {
     t.clock.startSong(c.songStart);
     countdown.value = beatsAhead;
     screen.value = 'playing';
+    void this.wakeLock.hold();
   }
 
   restart(): void {
@@ -909,6 +959,7 @@ export class GameController {
     this.transport?.stop();
     this.current = null;
     countdown.value = 0;
+    void this.wakeLock.release();
     hudPrompt.value = '';
     hudTutorial.value = false;
   }

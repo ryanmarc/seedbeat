@@ -7,6 +7,7 @@ import type { Judgement, UiSound } from '@seedbeat/worklet/protocol';
 import { GameClock, audioSourceFromContext } from '../engine/clock';
 import { PerformanceAudioSource } from '../engine/fake-audio';
 import { AudioEngine } from '../platform/audio';
+import { watchAudio, type AudioHooks } from '../platform/lifecycle';
 
 export interface StartOptions {
   seed: string;
@@ -36,6 +37,10 @@ export interface Transport {
   ui(sound: UiSound): void;
   setVolumes(v: { master?: number; music?: number; hit?: number; ui?: number }): void;
   onEnded(fn: () => void): () => void;
+  /** Audio-context state changes (interruptions). No-op without audio. */
+  watchState(hooks: AudioHooks): () => void;
+  /** Resume a suspended/interrupted context (call from a gesture). True when it is running. */
+  ensureRunning(): Promise<boolean>;
 }
 
 export class WorkletTransport implements Transport {
@@ -96,7 +101,22 @@ export class WorkletTransport implements Transport {
     return this.engine.on('ended', fn);
   }
   async resumeContext(): Promise<void> {
-    if (this.engine.ctx.state === 'suspended') await this.engine.ctx.resume();
+    if (this.engine.ctx.state !== 'running') await this.engine.ctx.resume();
+  }
+  watchState(hooks: AudioHooks): () => void {
+    return watchAudio(this.engine.ctx, hooks);
+  }
+  async ensureRunning(): Promise<boolean> {
+    const ctx = this.engine.ctx;
+    if (ctx.state === 'closed') return false;
+    if (ctx.state !== 'running') {
+      try {
+        await ctx.resume();
+      } catch {
+        /* iOS: resume outside a gesture is refused; the caller asks for a tap */
+      }
+    }
+    return (ctx.state as string) === 'running';
   }
 }
 
@@ -130,5 +150,11 @@ export class SilentTransport implements Transport {
   onEnded(fn: () => void): () => void {
     this.endedListeners.add(fn);
     return () => this.endedListeners.delete(fn);
+  }
+  watchState(): () => void {
+    return () => {};
+  }
+  ensureRunning(): Promise<boolean> {
+    return Promise.resolve(true);
   }
 }

@@ -1,0 +1,52 @@
+name: Deploy to gh-pages
+
+# Builds the production bundle and force-pushes it to the `gh-pages` branch. Point GitHub Pages
+# at that branch (Settings → Pages → Deploy from a branch → gh-pages, / root). The app is served
+# from https://<owner>.github.io/<repo>/, so the build uses that subpath as its base. Set a
+# repository variable SEEDBEAT_BASE=/ if you later attach a custom domain at the site root.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build for the Pages subpath
+        env:
+          SEEDBEAT_BASE: ${{ vars.SEEDBEAT_BASE || format('/{0}/', github.event.repository.name) }}
+        run: pnpm build
+
+      - name: Push dist to gh-pages
+        working-directory: apps/game/dist
+        run: |
+          touch .nojekyll
+          git init -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy ${GITHUB_SHA} from ${GITHUB_REF_NAME}"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -15,9 +15,10 @@
     "e2e",
     "vite.config.ts",
     "vite-plugin-worklet.ts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "vite-plugin-sw.ts"
   ],
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["src/**/*.test.ts", "*.test.ts", "sw"],
   "references": [
     {
       "path": "../../packages/core"

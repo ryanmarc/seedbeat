@@ -2,7 +2,7 @@ import { MOODS } from '@seedbeat/core';
 import { achievementById } from '../app/achievements';
 import { controller } from '../app/controller';
 import { DIFF_LABEL, MOOD_LABEL, fmtTime, randomSeed } from '../app/format';
-import { copyText, deepLink, resultCard, shareCard } from '../app/share';
+import { shareRun } from '../app/share';
 import { results, screen, selection, showToast } from '../app/state';
 import { Screen } from './components';
 import { Histogram, TimingGraph } from './TimingGraph';
@@ -31,15 +31,7 @@ export function ResultsScreen() {
     void controller.ensureIdle();
   };
   const share = async (): Promise<void> => {
-    const ok = await copyText(deepLink(r.selection));
-    showToast(ok ? 'Link copied. Making the result card…' : 'Could not copy the link.');
-    try {
-      const blob = await resultCard(r, pal.accent, pal.accent2, pal.bg);
-      const how = await shareCard(blob, `seedbeat-${r.selection.seed}.png`);
-      showToast(how === 'shared' ? 'Shared.' : 'Result card downloaded.');
-    } catch {
-      showToast('Card sharing is not available here.');
-    }
+    showToast(await shareRun(r, pal.accent, pal.accent2, pal.bg));
   };
   return (
     <Screen id="results" title={r.songName} lede={`${status} · ${meta}`}>

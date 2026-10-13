@@ -9,6 +9,7 @@ export default defineConfig({
           include: [
             'packages/*/src/**/*.test.ts',
             'apps/game/src/**/*.test.ts',
+            'apps/game/*.test.ts',
             'tools/size/**/*.test.ts',
             'tools/timing/**/*.test.ts',
           ],

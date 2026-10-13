@@ -1,12 +1,18 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { controller } from '../app/controller';
-import { screen } from '../app/state';
+import { screen, showToast } from '../app/state';
+import { installable, iosInstallHint, promptInstall } from '../platform/install';
 
 export function TitleScreen() {
   const h = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     h.current?.focus();
   }, []);
+  const install = async (): Promise<void> => {
+    const r = await promptInstall();
+    if (r === 'accepted') showToast('Installed. Seedbeat is on your home screen.');
+  };
+  const iosHint = iosInstallHint();
   const go = (fn: () => void): void => {
     controller.warmAudio();
     fn();
@@ -49,7 +55,18 @@ export function TitleScreen() {
           >
             Settings
           </button>
+          {installable.value && (
+            <button type="button" class="btn small" onClick={() => void install()}>
+              Install app
+            </button>
+          )}
         </div>
+        {iosHint && (
+          <p class="meta hint">
+            To install: tap Share in Safari, then “Add to Home Screen”. The app then opens full
+            screen and plays offline.
+          </p>
+        )}
       </div>
     </section>
   );

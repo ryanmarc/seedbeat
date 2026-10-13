@@ -42,9 +42,51 @@ Requires Node 24 and pnpm 11 (`corepack enable` picks up the pinned version).
 | `pnpm test:e2e`    | Playwright end-to-end (run `pnpm exec playwright install chromium` once first)  |
 | `pnpm perf`        | Playwright perf harness: fps, p95 frame time, late-frame %                      |
 | `pnpm typecheck`   | `tsc -b` across the workspace                                                   |
+| `pnpm icons`       | Re-rasterise `apps/game/public/icons/icon.svg` into the PNG app icons           |
 | `pnpm lint`        | ESLint and Prettier check (`pnpm format` to fix)                                |
 
 CI runs typecheck, lint, unit, golden, audio, build and the size check on every push and pull request.
+
+## Installable web app (PWA)
+
+The production build is an installable PWA: `public/manifest.webmanifest`, the icons in
+`public/icons`, and a service worker emitted as `dist/sw.js` by `apps/game/vite-plugin-sw.ts`.
+The worker precaches the app shell (about 1 MB: HTML, JS, CSS, woff2 fonts, the worklet, icons),
+serves hashed assets cache-first and navigations network-first with the cached page as the
+offline fallback, so the game plays in airplane mode after one online load. It is registered only
+in production builds (`platform/sw.ts`); the dev server serves unbundled modules.
+
+Phone lifecycle lives in `src/platform`: `lifecycle.ts` turns visibility, pagehide and freeze
+into a background pause (Resume counts in three beats) and the AudioContext's `suspended` /
+`interrupted` states into an audio pause that is cleared from the Resume tap; `wake-lock.ts`
+keeps the screen on while playing; `install.ts` captures `beforeinstallprompt` for the Install
+button and shows the Add-to-Home-Screen hint in iOS Safari; `haptics.ts` wraps the Vibration
+API. Results share the deep link and the result card through the Web Share API, falling back to
+copy and download.
+
+### Deploying to GitHub Pages
+
+`.github/workflows/pages.yml` builds on every push to `main` and force-pushes `apps/game/dist`
+to the `gh-pages` branch. Once: Settings → Pages → "Deploy from a branch" → `gh-pages`, folder
+`/ (root)`. The site is then at `https://<owner>.github.io/<repo>/`. The build's base path is set
+with `SEEDBEAT_BASE` (the workflow derives `/<repo>/`; set a repository variable `SEEDBEAT_BASE=/`
+for a custom domain at the root). Locally, `SEEDBEAT_BASE=/seedbeat/ pnpm build` then
+`pnpm --filter @seedbeat/game preview` serves it at `http://localhost:4173/seedbeat/`.
+
+### Checking on a phone
+
+Open the Pages URL (or any https host) on an iPhone (Safari) and an Android phone (Chrome):
+
+1. Open the URL, play once, then install: Android shows the Install button on the title screen;
+   iOS uses Share → Add to Home Screen. The installed app opens full screen with the icon.
+2. Turn on airplane mode and open the installed app: the title screen loads and a song plays.
+3. Mid-song: press the power button, then unlock. The game is paused with the background reason;
+   Resume counts in and the music comes back in sync.
+4. Mid-song: take a call or trigger Siri / Assistant. The game pauses with the audio reason;
+   after the interruption, Resume brings the sound back.
+5. Mid-song: connect and then disconnect Bluetooth headphones. Audio continues (or the game
+   pauses and resumes); notes stay aligned after a re-snap. Calibrate once per output.
+6. The screen does not dim during a song, and dims again on the results screen.
 
 ## Rules that the repo enforces
 

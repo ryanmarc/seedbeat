@@ -1,19 +1,26 @@
 import { controller } from '../app/controller';
 import { DIFF_LABEL, MOOD_LABEL } from '../app/format';
-import { selection } from '../app/state';
+import { pauseReason, selection } from '../app/state';
 import { Screen } from './components';
 
 export function PauseScreen() {
   const s = selection.value;
   const kind = controller.currentKind;
+  const why =
+    pauseReason.value === 'background'
+      ? 'Paused while Seedbeat was in the background. '
+      : pauseReason.value === 'audio'
+        ? 'Sound was interrupted by a call or another app. '
+        : '';
   const lede =
-    kind === 'tutorial'
+    why +
+    (kind === 'tutorial'
       ? 'Tutorial. Resuming counts in three beats with the music.'
-      : `${MOOD_LABEL[s.mood]} · ${DIFF_LABEL[s.difficulty]} · seed ${s.seed}. Resuming counts in three beats with the music.`;
+      : `${MOOD_LABEL[s.mood]} · ${DIFF_LABEL[s.difficulty]} · seed ${s.seed}. Resuming counts in three beats with the music.`);
   return (
     <Screen id="pause" title="Paused" lede={lede}>
       <div class="btnrow">
-        <button type="button" class="btn primary" onClick={() => controller.resume()}>
+        <button type="button" class="btn primary" onClick={() => void controller.resume()}>
           RESUME
         </button>
         {kind === 'practice' && (

@@ -79,6 +79,9 @@ export const results = signal<RunResult | null>(null);
 export const listening = signal(false);
 /** Beats left in the resume countdown (0 = none). */
 export const countdown = signal(0);
+/** Why the run is paused: the player, the page going to the background, or an audio interruption. */
+export type PauseReason = 'user' | 'background' | 'audio';
+export const pauseReason = signal<PauseReason>('user');
 export const audioReady = signal(false);
 export const toast = signal<string | null>(null);
 

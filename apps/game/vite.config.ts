@@ -2,16 +2,21 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
 import basicSsl from '@vitejs/plugin-basic-ssl';
+import { swPlugin } from './vite-plugin-sw.ts';
 import { workletPlugin } from './vite-plugin-worklet.ts';
 
 // AudioWorklet (and the clipboard, Web Share) need a secure context. `pnpm dev:phone` serves https
 // with a self-signed certificate so a phone on the LAN can play; accept the certificate warning once.
 const https = process.env['SEEDBEAT_HTTPS'] === '1';
 
+// Where the site is served from: '/' by default, '/<repo>/' for a GitHub Pages project site.
+const base = process.env['SEEDBEAT_BASE'] ?? '/';
+
 const workletEntry = fileURLToPath(new URL('../../packages/worklet/src/index.ts', import.meta.url));
 
 export default defineConfig({
-  plugins: [preact(), workletPlugin(workletEntry), ...(https ? [basicSsl()] : [])],
+  base,
+  plugins: [preact(), workletPlugin(workletEntry), swPlugin(), ...(https ? [basicSsl()] : [])],
   build: {
     target: 'es2022',
     // Written to dist/.vite/manifest.json; tools/size walks it from the entry to measure initial JS.
