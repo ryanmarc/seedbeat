@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { platformDefaults } from '../platform/defaults';
 import { DEFAULT_SETTINGS, defaultSave, migrate, songKey, starsFor } from './schema';
 import { MemoryKV, SaveStore } from './store';
 
@@ -70,5 +71,18 @@ describe('save store', () => {
     expect(() => b.importJSON('{not json')).toThrow();
     b.reset();
     expect(b.save.recents).toEqual([]);
+  });
+});
+
+describe('platform defaults', () => {
+  it('prefer the 20 ms audio buffer on touch devices and the lowest on desktop', () => {
+    expect(platformDefaults(true).audioBuffer).toBe('balanced');
+    expect(platformDefaults(false).audioBuffer).toBe('low');
+    expect(migrate(null, platformDefaults(true)).settings.audioBuffer).toBe('balanced');
+    // A stored choice wins over the platform default.
+    expect(
+      migrate({ v: 1, settings: { audioBuffer: 'low' } }, platformDefaults(true)).settings
+        .audioBuffer,
+    ).toBe('low');
   });
 });

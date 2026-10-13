@@ -298,8 +298,8 @@ export function eventTriggers(mood: Mood, e: MusicEvent, sd: number, out: Trigge
       break;
     }
     case 'keys':
-      for (const m of e.midis!) {
-        const f = mtof(m);
+      for (let mi = 0, ms = e.midis!; mi < ms.length; mi++) {
+        const f = mtof(ms[mi]!);
         at(
           0,
           tone({
@@ -332,12 +332,12 @@ export function eventTriggers(mood: Mood, e: MusicEvent, sd: number, out: Trigge
       }
       break;
     case 'pad':
-      for (const m of e.midis!)
+      for (let mi = 0, ms = e.midis!; mi < ms.length; mi++)
         at(
           0,
           tone({
             wave: 'sawtooth',
-            freq: mtof(m),
+            freq: mtof(ms[mi]!),
             dur: len,
             det: [-12, 0, 12],
             vol: 0.065,
@@ -366,12 +366,12 @@ export function eventTriggers(mood: Mood, e: MusicEvent, sd: number, out: Trigge
       );
       break;
     case 'stab':
-      for (const m of e.midis!)
+      for (let mi = 0, ms = e.midis!; mi < ms.length; mi++)
         at(
           0,
           tone({
             wave: 'sawtooth',
-            freq: mtof(m),
+            freq: mtof(ms[mi]!),
             dur: len,
             det: [-8, 8],
             vol: 0.11,

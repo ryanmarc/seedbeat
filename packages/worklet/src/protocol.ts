@@ -36,6 +36,11 @@ export type MainToWorklet =
     }
   | { type: 'pause' }
   | {
+      /** Hardware callback period (AudioContext.baseLatency), so the stall meter need not guess it. */
+      type: 'period';
+      ms: number;
+    }
+  | {
       type: 'resume';
       /** AudioContext time at which playback continues from the paused position. */
       atTime: number;
@@ -65,6 +70,12 @@ export interface StatusMessage {
   voices: number;
   peakVoices: number;
   steals: number;
+  /** Audio-thread stall detector (stall-meter.ts): learned callback period and gaps above it. */
+  periodMs: number;
+  maxGapMs: number;
+  stalls: number;
+  lastStallMs: number;
+  maxBusyMs: number;
 }
 
 export type WorkletToMain =

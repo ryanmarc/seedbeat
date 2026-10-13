@@ -24,8 +24,13 @@ export interface StartOptions {
   loop?: boolean;
 }
 
-/** Bars kept in the song's memo cache behind the playhead (prototype: 4). */
-const KEEP_BARS = 4;
+/**
+ * Bars are generated ahead of the playhead one per block (the whole song within the lead-in) and
+ * kept for the run: generating on the downbeat put work on the audio thread, and bars that were
+ * dropped after a few seconds were promoted garbage, which is what triggers V8's major
+ * collections (12 ms on a phone). Endless keeps a window this many bars wide.
+ */
+const ENDLESS_WINDOW = 256;
 
 /**
  * Sample-accurate sequencer. Walks bars and steps of a core Song, converting step times to
@@ -45,6 +50,8 @@ export class Sequencer {
   private playing = false;
   private pausedAtFrame = 0;
   private ended = false;
+  /** Next bar to generate ahead. */
+  private genBar = 0;
   private readonly pre: { frame: number; trigger: Trigger }[] = [];
   private readonly scratch: Trigger[] = [];
 
@@ -97,6 +104,7 @@ export class Sequencer {
     this.loops = 0;
     this.playing = true;
     this.ended = false;
+    this.genBar = this.fromBar;
     this.pre.length = 0;
     this.engine.configure(o.mood, song.sd / this.rate);
     if (o.countIn) {
@@ -166,7 +174,8 @@ export class Sequencer {
     if (gain <= 0) return;
     this.scratch.length = 0;
     uiSoundTriggers(kind, this.scratch);
-    for (const t of this.scratch) {
+    for (let i = 0; i < this.scratch.length; i++) {
+      const t = this.scratch[i]!;
       const p = t.params;
       if (p.kind === 'tone') t.params = { ...p, vol: p.vol * gain };
     }
@@ -200,6 +209,9 @@ export class Sequencer {
       }
     }
     if (s && this.playing) {
+      // Generate one bar ahead per block, up to the song end or the endless window.
+      const genLimit = Math.min(this.toBar, this.bar + ENDLESS_WINDOW);
+      if (this.genBar < genLimit) getBar(s, this.genBar++);
       for (;;) {
         if (this.bar >= this.toBar) {
           if (!this.loop) {
@@ -212,7 +224,6 @@ export class Sequencer {
           this.bar = this.fromBar;
           this.step = 0;
           this.loops++;
-          for (let b = this.toBar - KEEP_BARS; b < this.toBar; b++) s.bars.delete(b);
         }
         const t = stepTime(s, this.bar, this.step);
         const frame = this.frameOf(t);
@@ -220,16 +231,18 @@ export class Sequencer {
         if (frame >= blockStart) {
           const b = getBar(s, this.bar);
           const sd = s.sd / this.rate;
-          for (const e of b.byStep[this.step]!) {
+          const evs = b.byStep[this.step]!;
+          for (let k = 0; k < evs.length; k++) {
             this.scratch.length = 0;
-            eventTriggers(s.mood, e, sd, this.scratch);
+            eventTriggers(s.mood, evs[k]!, sd, this.scratch);
             this.engine.triggerAll(this.scratch, frame);
           }
         }
         if (++this.step >= 16) {
           this.step = 0;
           this.bar++;
-          s.bars.delete(this.bar - KEEP_BARS);
+          // Endless only: drop bars far behind so memory stays bounded.
+          if (s.total === null) s.bars.delete(this.bar - ENDLESS_WINDOW);
         }
       }
     }

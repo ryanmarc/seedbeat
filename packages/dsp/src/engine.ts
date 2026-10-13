@@ -3,10 +3,10 @@ import { FeedbackDelay } from './delay';
 import { Compressor, Limiter } from './dynamics';
 import { MOOD_MIX, type Mood, type Trigger } from './presets';
 import { Reverb } from './reverb';
-import { TWO_PI, Xorshift } from './util';
+import { BLOCK_SIZE, TWO_PI, Xorshift } from './util';
 import { Voice, type VoiceParams } from './voice';
 
-export const BLOCK_SIZE = 128;
+export { BLOCK_SIZE };
 export const VOICE_POOL = 64;
 export const HIT_VOICE_RESERVE = 8;
 /** Base output gain before the per-mood trim (the prototype's 0.85). */
@@ -33,8 +33,15 @@ export class Engine {
   private readonly reverbSend = new Float32Array(BLOCK_SIZE);
   private readonly hitBuf = new Float32Array(BLOCK_SIZE);
   private readonly scratchSend = new Float32Array(BLOCK_SIZE);
-  private readonly rvOut = new Float32Array(2);
-  private readonly limOut = new Float32Array(2);
+  // Master chain scratch. The reverb output is Float32 because the per-sample chain rounded it
+  // through a Float32Array; the rest stays double, as the locals were.
+  private readonly rvL = new Float32Array(BLOCK_SIZE);
+  private readonly rvR = new Float32Array(BLOCK_SIZE);
+  private readonly wet = new Float64Array(BLOCK_SIZE);
+  private readonly crk = new Float64Array(BLOCK_SIZE);
+  private readonly bufL = new Float64Array(BLOCK_SIZE);
+  private readonly bufR = new Float64Array(BLOCK_SIZE);
+  private readonly gBuf = new Float64Array(BLOCK_SIZE);
   private readonly delay: FeedbackDelay;
   private readonly reverb: Reverb;
   private readonly toneL = new Biquad();
@@ -51,8 +58,8 @@ export class Engine {
   private crackle = false;
   private wobble = false;
   private lfoPhase = 0;
-  private clickAmp = 0;
-  private clickLeft = 0;
+  /** Crackle click state [amp, samplesLeft]; typed-array slots because they change per sample. */
+  private readonly click = new Float64Array(2);
   private age = 0;
   musicGain = 1;
   hitGain = 1;
@@ -107,8 +114,8 @@ export class Engine {
     this.comp.reset();
     this.limiter.reset();
     this.lfoPhase = 0;
-    this.clickAmp = 0;
-    this.clickLeft = 0;
+    this.click[0] = 0;
+    this.click[1] = 0;
   }
 
   /** Current mood. */
@@ -118,18 +125,23 @@ export class Engine {
 
   /** Silence all voices immediately (stop). */
   allNotesOff(): void {
-    for (const v of this.voices) v.kill();
+    const vs = this.voices;
+    for (let i = 0; i < vs.length; i++) vs[i]!.kill();
   }
 
   /** Release all music voices (pause): tails ring out, nothing new starts. */
   releaseAll(): void {
-    for (const v of this.voices) v.release();
+    const vs = this.voices;
+    for (let i = 0; i < vs.length; i++) vs[i]!.release();
   }
 
   private allocate(reserved: boolean): Voice {
     let best: Voice | null = null;
     let bestScore = Infinity;
-    for (const v of this.voices) {
+    const vs = this.voices;
+    // Index loops: a for-of iterator is an allocation on the audio thread.
+    for (let i = 0; i < vs.length; i++) {
+      const v = vs[i]!;
       if (v.reserved !== reserved) continue;
       if (!v.active) return v;
       // Prefer releasing voices, then the quietest, then the oldest.
@@ -150,8 +162,10 @@ export class Engine {
   }
 
   triggerAll(triggers: readonly Trigger[], eventFrame: number, reserved = false): void {
-    for (const t of triggers)
+    for (let i = 0; i < triggers.length; i++) {
+      const t = triggers[i]!;
       this.trigger(t.params, eventFrame + Math.round(t.offset * this.sampleRate), reserved);
+    }
   }
 
   /** Render one block of up to BLOCK_SIZE frames starting at absolute frame `blockStart`. */
@@ -174,7 +188,9 @@ export class Engine {
     }
 
     let active = 0;
-    for (const v of this.voices) {
+    const vs = this.voices;
+    for (let i = 0; i < vs.length; i++) {
+      const v = vs[i]!;
       if (!v.active) continue;
       if (v.reserved) v.render(hit, this.scratchSend, this.scratchSend, blockStart, nFrames, 0);
       else v.render(dry, ds, rs, blockStart, nFrames, wobCents);
@@ -183,38 +199,82 @@ export class Engine {
     this.stats.voices = active;
     if (active > this.stats.peakVoices) this.stats.peakVoices = active;
 
-    const rv = this.rvOut;
-    const lim = this.limOut;
+    const n = nFrames;
+    const wet = this.wet;
+    const crk = this.crk;
+    const rvL = this.rvL;
+    const rvR = this.rvR;
+    const bufL = this.bufL;
+    const bufR = this.bufR;
+    const gBuf = this.gBuf;
+    this.delay.processBlock(ds, wet, n);
+    const crackle = this.crackle;
+    if (crackle) this.crackleBlock(crk, n);
+    this.reverb.processBlock(rs, rvL, rvR, n);
+    const delayWet = this.delayWet;
+    const reverbWet = this.reverbWet;
+    for (let i = 0; i < n; i++) {
+      let mono = dry[i]! + wet[i]! * delayWet;
+      if (crackle) mono += crk[i]! * 0.6;
+      bufL[i] = mono + rvL[i]! * reverbWet;
+      bufR[i] = mono + rvR[i]! * reverbWet;
+    }
+    this.toneL.processBlock(bufL, 0, n);
+    this.dcL.processBlock(bufL, 0, n);
+    this.toneR.processBlock(bufR, 0, n);
+    this.dcR.processBlock(bufR, 0, n);
+    this.comp.gainBlock(bufL, bufR, gBuf, n);
+    const tm = this.trim;
     const music = this.musicGain;
     const hitG = this.hitGain;
-    const master = this.masterGain;
-    for (let i = 0; i < nFrames; i++) {
-      let mono = dry[i]! + this.delay.process(ds[i]!) * this.delayWet;
-      if (this.crackle) mono += this.nextCrackle() * 0.6;
-      this.reverb.process(rs[i]!, rv);
-      let l = this.dcL.process(this.toneL.process(mono + rv[0]! * this.reverbWet));
-      let r = this.dcR.process(this.toneR.process(mono + rv[1]! * this.reverbWet));
-      const g = this.comp.gain(Math.max(Math.abs(l), Math.abs(r))) * this.trim * music;
-      l = l * g + hit[i]! * hitG;
-      r = r * g + hit[i]! * hitG;
-      this.limiter.process(l, r, lim);
-      outL[i] = lim[0]! * master;
-      outR[i] = lim[1]! * master;
+    for (let i = 0; i < n; i++) {
+      const g = gBuf[i]! * tm * music;
+      bufL[i] = bufL[i]! * g + hit[i]! * hitG;
+      bufR[i] = bufR[i]! * g + hit[i]! * hitG;
     }
+    this.limiter.processBlock(bufL, bufR, outL, outR, n, this.masterGain);
   }
 
   /** Vinyl crackle: low hiss plus sparse decaying clicks (prototype CRACKLE buffer). */
-  private nextCrackle(): number {
-    let v = this.crackleRng.next() * 0.006;
-    if (this.clickLeft > 0) {
-      v += this.clickAmp;
-      this.clickAmp *= 0.6;
-      this.clickLeft--;
-    } else if ((this.crackleRng.next() + 1) * 0.5 < 0.00035) {
-      const sign = this.crackleRng.next() < 0 ? -1 : 1;
-      this.clickAmp = sign * (0.15 + (this.crackleRng.next() + 1) * 0.5 * 0.4);
-      this.clickLeft = 12;
+  private crackleBlock(out: Float64Array, n: number): void {
+    const c = this.click;
+    const st = this.crackleRng.state;
+    let s = st[0]!;
+    let amp = c[0]!;
+    let left = c[1]!;
+    for (let i = 0; i < n; i++) {
+      s ^= s << 13;
+      s ^= s >>> 17;
+      s ^= s << 5;
+      s >>>= 0;
+      let v = ((s / 4294967296) * 2 - 1) * 0.006;
+      if (left > 0) {
+        v += amp;
+        amp *= 0.6;
+        left--;
+      } else {
+        s ^= s << 13;
+        s ^= s >>> 17;
+        s ^= s << 5;
+        s >>>= 0;
+        if (((s / 4294967296) * 2 - 1 + 1) * 0.5 < 0.00035) {
+          s ^= s << 13;
+          s ^= s >>> 17;
+          s ^= s << 5;
+          s >>>= 0;
+          const sign = (s / 4294967296) * 2 - 1 < 0 ? -1 : 1;
+          s ^= s << 13;
+          s ^= s >>> 17;
+          s ^= s << 5;
+          s >>>= 0;
+          amp = sign * (0.15 + ((s / 4294967296) * 2 - 1 + 1) * 0.5 * 0.4);
+          left = 12;
+        }
+      }
+      out[i] = v;
     }
-    return v;
+    st[0] = s;
+    c[0] = amp;
+    c[1] = left;
   }
 }

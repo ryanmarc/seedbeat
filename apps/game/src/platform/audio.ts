@@ -29,20 +29,30 @@ export class AudioEngine {
   };
   /** Limiter lookahead reported by the worklet, in seconds. */
   latencySec = 0;
+  /** The latency hint this context was created with (a new hint needs a new context). */
+  latencyHint: AudioContextLatencyCategory = 'interactive';
 
   private constructor(ctx: AudioContext) {
     this.ctx = ctx;
   }
 
   /** Call from a user gesture. Resolves when the worklet is loaded and has said hello. */
-  static async create(): Promise<AudioEngine> {
-    const ctx = new AudioContext({ latencyHint: 'interactive' });
+  static async create(
+    latencyHint: AudioContextLatencyCategory = 'interactive',
+  ): Promise<AudioEngine> {
+    const ctx = new AudioContext({ latencyHint });
     if (ctx.state === 'suspended') await ctx.resume();
     await ctx.audioWorklet.addModule(workletUrl);
     const engine = new AudioEngine(ctx);
+    engine.latencyHint = latencyHint;
     const node = new AudioWorkletNode(ctx, PROCESSOR_NAME, { outputChannelCount: [2] });
     engine.node = node;
     node.connect(ctx.destination);
+    // The render callback period: Chrome and Safari report it as baseLatency (0 where unknown).
+    node.port.postMessage({
+      type: 'period',
+      ms: (ctx.baseLatency || 0) * 1000,
+    } satisfies MainToWorklet);
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('AudioWorklet did not respond')), 5000);
       node.port.onmessage = (e: MessageEvent<WorkletToMain>) => {

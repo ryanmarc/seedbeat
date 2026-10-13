@@ -3,7 +3,7 @@
  * harnesses and tests. Both expose the same clock so the game code never branches on audio.
  */
 import type { MoodId, Mode } from '@seedbeat/core';
-import type { Judgement, UiSound } from '@seedbeat/worklet/protocol';
+import type { Judgement, StatusMessage, UiSound } from '@seedbeat/worklet/protocol';
 import { GameClock, audioSourceFromContext } from '../engine/clock';
 import { PerformanceAudioSource } from '../engine/fake-audio';
 import { AudioEngine } from '../platform/audio';
@@ -37,10 +37,16 @@ export interface Transport {
   ui(sound: UiSound): void;
   setVolumes(v: { master?: number; music?: number; hit?: number; ui?: number }): void;
   onEnded(fn: () => void): () => void;
+  /** Worklet status every 250 ms (position, voices, stalls). Never fires without audio. */
+  onStatus(fn: (s: StatusMessage) => void): () => void;
   /** Audio-context state changes (interruptions). No-op without audio. */
   watchState(hooks: AudioHooks): () => void;
   /** Resume a suspended/interrupted context (call from a gesture). True when it is running. */
   ensureRunning(): Promise<boolean>;
+  /** Latency hint the context was created with ('interactive' for the silent transport). */
+  readonly latencyHint: AudioContextLatencyCategory;
+  /** Release the audio context (to recreate it with another buffer size). */
+  close(): Promise<void>;
 }
 
 export class WorkletTransport implements Transport {
@@ -50,8 +56,14 @@ export class WorkletTransport implements Transport {
     this.clock = new GameClock(audioSourceFromContext(engine.ctx), () => performance.now());
     engine.on('status', (s) => this.clock.sampleFromWorklet(s.ctxTime));
   }
-  static async create(): Promise<WorkletTransport> {
-    return new WorkletTransport(await AudioEngine.create());
+  static async create(latencyHint: AudioContextLatencyCategory): Promise<WorkletTransport> {
+    return new WorkletTransport(await AudioEngine.create(latencyHint));
+  }
+  get latencyHint(): AudioContextLatencyCategory {
+    return this.engine.latencyHint;
+  }
+  close(): Promise<void> {
+    return this.engine.close();
   }
   now(): number {
     return this.engine.ctx.currentTime;
@@ -99,6 +111,9 @@ export class WorkletTransport implements Transport {
   }
   onEnded(fn: () => void): () => void {
     return this.engine.on('ended', fn);
+  }
+  onStatus(fn: (s: StatusMessage) => void): () => void {
+    return this.engine.on('status', fn);
   }
   async resumeContext(): Promise<void> {
     if (this.engine.ctx.state !== 'running') await this.engine.ctx.resume();
@@ -154,7 +169,14 @@ export class SilentTransport implements Transport {
   watchState(): () => void {
     return () => {};
   }
+  onStatus(): () => void {
+    return () => {};
+  }
   ensureRunning(): Promise<boolean> {
     return Promise.resolve(true);
+  }
+  readonly latencyHint = 'interactive' as const;
+  close(): Promise<void> {
+    return Promise.resolve();
   }
 }

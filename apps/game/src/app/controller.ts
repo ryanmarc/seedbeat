@@ -35,12 +35,12 @@ import { PlayRun } from '../engine/play';
 import { NO_HAPTICS, WebHaptics, hapticFor, type Haptics } from '../platform/haptics';
 import { watchPage } from '../platform/lifecycle';
 import { WakeLockKeeper } from '../platform/wake-lock';
-import { DiagnosticsOverlay } from '../render/diagnostics';
+import { DiagnosticsOverlay, NO_AUDIO_STATS, type AudioStats } from '../render/diagnostics';
 import { Stage } from '../render/stage';
 import type { Scene } from '../render/scene';
 import { TIERS } from '../render/quality';
 import { SaveStore, MemoryKV } from '../save/store';
-import { songKey, starsFor, type Settings } from '../save/schema';
+import { songKey, starsFor, type AudioBuffer, type Settings } from '../save/schema';
 import { achievementById, newAchievements, type FinishedRun } from './achievements';
 import { dailySelection, isDaily, nextStreak, utcDay } from './daily';
 import { practiceText, previewStartTime, sectionChoices, sectionText } from './format';
@@ -171,6 +171,8 @@ export class GameController {
   private lastEnded = false;
   private unlisten: (() => void) | null = null;
   private idleT0 = 0;
+  /** Latest worklet status (voices, steals, stalls); updated by message, read by the overlay. */
+  private audioStats: AudioStats = { ...NO_AUDIO_STATS };
   /** Injectable clock for the daily seed (tests). */
   now: () => Date = () => new Date();
 
@@ -371,8 +373,27 @@ export class GameController {
       if (this.transport instanceof WorkletTransport) await this.transport.resumeContext();
       return this.transport;
     }
-    const t = this.harness.audio ? await WorkletTransport.create() : new SilentTransport();
+    const t = this.harness.audio
+      ? await WorkletTransport.create(latencyHintFor(this.settings.audioBuffer))
+      : new SilentTransport();
     this.transport = t;
+    t.onStatus((s) => {
+      const a = this.audioStats;
+      if (s.stalls > a.stalls) {
+        a.lastStallAt = `@${s.bar}.${s.step}`;
+        console.warn(
+          `[audio] stall ${s.lastStallMs.toFixed(0)} ms (period ${s.periodMs.toFixed(0)} ms, voices ${s.voices}) at bar ${s.bar} step ${s.step}`,
+        );
+      }
+      a.voices = s.voices;
+      a.peakVoices = s.peakVoices;
+      a.steals = s.steals;
+      a.periodMs = s.periodMs;
+      a.maxGapMs = s.maxGapMs;
+      a.stalls = s.stalls;
+      a.lastStallMs = s.lastStallMs;
+      a.maxBusyMs = s.maxBusyMs;
+    });
     t.watchState({
       interrupted: () => this.onAudioInterrupted(),
       running: () => {},
@@ -429,6 +450,20 @@ export class GameController {
       void this.ensureIdle();
       showToast('Sound stopped. Press Play to start the song again.', 5000);
     }
+  }
+
+  /**
+   * The buffer-size setting needs a new AudioContext. Between runs, drop the current one so the
+   * next gesture (Play, Listen) creates it with the new hint.
+   */
+  private async syncAudioBuffer(): Promise<void> {
+    const t = this.transport;
+    if (!t || t.kind !== 'worklet' || this.current) return;
+    if (t.latencyHint === latencyHintFor(this.settings.audioBuffer)) return;
+    this.transport = null;
+    audioReady.value = false;
+    listening.value = false;
+    await t.close();
   }
 
   /** Start the audio engine from a menu gesture so the first song starts faster and menus blip. */
@@ -535,6 +570,7 @@ export class GameController {
   async startRun(tutorial = false): Promise<void> {
     this.teardownRun();
     await this.listen(false);
+    await this.syncAudioBuffer();
     const stage = await this.ensureStage();
     const t = await this.transportOrToast();
     if (!t) return;
@@ -894,8 +930,7 @@ export class GameController {
       tierScale: loop.quality.resolutionScale,
       tierLocked: loop.quality.state.locked,
       outputLatencyMs: (this.transport?.outputLatency ?? 0) * 1000,
-      audioVoices: 0,
-      audioSteals: 0,
+      audio: this.audioStats,
       clockOffsetMs:
         this.transport?.clock.offset == null ? null : this.transport.clock.offset * 1000,
     });
@@ -1090,6 +1125,7 @@ export class GameController {
     if (back === 'select' || back === 'title') {
       this.idleKey = ''; // cosmetics or palette may have changed
       void this.ensureIdle();
+      void this.syncAudioBuffer();
     }
   }
 
@@ -1133,6 +1169,7 @@ export class GameController {
           ? { score: s.score, combo: s.combo, judged: s.accN, ended: s.ended }
           : { score: 0, combo: 0, judged: 0, ended: true };
       },
+      audio: () => ({ ...this.audioStats }),
       ready: true,
     };
   }
@@ -1145,6 +1182,10 @@ export class GameController {
   get currentKind(): RunKind | null {
     return this.current?.kind ?? null;
   }
+}
+
+function latencyHintFor(b: AudioBuffer): AudioContextLatencyCategory {
+  return b === 'low' ? 'interactive' : b === 'balanced' ? 'balanced' : 'playback';
 }
 
 function idle(cb: () => void): number {

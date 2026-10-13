@@ -100,7 +100,7 @@ Open the Pages URL (or any https host) on an iPhone (Safari) and an Android phon
 3. **Timing.** Every input is judged by its event timestamp mapped through the smoothed audio clock,
    never by "now" inside a handler. Notes are never positioned from raw `AudioContext.currentTime`.
 4. **Nothing heavy on the frame.** No allocation, audio node creation, chart generation, JSON parsing
-   or DOM layout reads inside the render loop. The sequencer runs in the AudioWorklet.
+   or DOM layout reads inside the render loop. The sequencer runs in the AudioWorklet. DSP processes whole blocks: no per-sample calls between functions, because every fraction crossing a non-inlined call is boxed and the resulting garbage collections stall the audio thread (`packages/dsp/src/alloc.test.ts` guards this).
 5. **Performance budgets are acceptance criteria.** Initial JS ≤ 300 KB gzip; on a reference
    low-end phone, ≤ 1 % late frames in a Hard chorus, p95 main-thread JS ≤ 4 ms per frame, zero
    steady-state allocations, zero audio underruns.

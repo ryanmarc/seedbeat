@@ -1,4 +1,5 @@
 import { get, set } from 'idb-keyval';
+import { platformDefaults } from '../platform/defaults';
 import { defaultSave, migrate, type Best, type Save, type Settings } from './schema';
 
 const KEY = 'seedbeat:save';
@@ -42,7 +43,7 @@ export class SaveStore {
 
   async load(): Promise<Save> {
     try {
-      this.data = migrate(await this.kv.get(KEY));
+      this.data = migrate(await this.kv.get(KEY), platformDefaults());
     } catch {
       this.data = defaultSave();
     }

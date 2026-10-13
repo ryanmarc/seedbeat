@@ -12,6 +12,8 @@ import {
   type WorkletToMain,
 } from './protocol';
 import { Sequencer } from './sequencer';
+import { StallMeter } from './stall-meter';
+import { warmUp } from './warmup';
 
 class SeedbeatProcessor extends AudioWorkletProcessor {
   private readonly engine = new Engine(sampleRate);
@@ -21,6 +23,7 @@ class SeedbeatProcessor extends AudioWorkletProcessor {
     Math.round((STATUS_INTERVAL_SEC * sampleRate) / BLOCK_SIZE),
   );
   private blocks = 0;
+  private readonly stall = new StallMeter();
   private uiGain = 1;
   private endedSent = false;
   private readonly silentL = new Float32Array(BLOCK_SIZE);
@@ -28,6 +31,7 @@ class SeedbeatProcessor extends AudioWorkletProcessor {
 
   constructor() {
     super();
+    warmUp(this.engine);
     this.port.onmessage = (e: MessageEvent<MainToWorklet>) => {
       try {
         this.onMessage(e.data);
@@ -69,13 +73,18 @@ class SeedbeatProcessor extends AudioWorkletProcessor {
           ...(msg.loop !== undefined ? { loop: msg.loop } : {}),
         });
         this.endedSent = false;
+        this.stall.reset();
         break;
       }
       case 'pause':
         this.seq.pause(currentFrame);
         break;
+      case 'period':
+        this.stall.setPeriod(msg.ms);
+        break;
       case 'resume':
         this.seq.resume(Math.round(msg.atTime * sampleRate));
+        this.stall.resume();
         break;
       case 'stop':
         this.seq.stop();
@@ -107,7 +116,13 @@ class SeedbeatProcessor extends AudioWorkletProcessor {
     const l = out?.[0] ?? this.silentL;
     const r = out?.[1] ?? l;
     const n = l.length;
+    // Date is the only clock in this scope; 1 ms resolution is enough to see a missed buffer.
+    // Count stalls only once the song is sounding: the stream start and the lead-in are irregular.
+    const t0 = Date.now();
+    this.stall.armed = this.seq.isPlaying && this.seq.songFrameAt(currentFrame) >= 0;
+    this.stall.tick(t0);
     this.seq.process(l, r, n, currentFrame);
+    this.stall.busy(Date.now() - t0);
     if (out && out.length > 2) for (let c = 2; c < out.length; c++) out[c]!.set(l);
 
     if (++this.blocks % this.statusEvery === 0) {
@@ -121,6 +136,7 @@ class SeedbeatProcessor extends AudioWorkletProcessor {
         voices: this.engine.stats.voices,
         peakVoices: this.engine.stats.peakVoices,
         steals: this.engine.stats.steals,
+        ...this.stall.snapshot(),
       });
     }
     if (this.seq.hasEnded && !this.endedSent) {

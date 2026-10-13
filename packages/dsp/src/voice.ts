@@ -1,7 +1,7 @@
 import { Biquad, type BiquadType } from './biquad';
 import { AdsrEnv, ExpEnv, ExpRamp } from './env';
 import { Oscillator, type Wave } from './osc';
-import { Xorshift } from './util';
+import { BLOCK_SIZE, Xorshift } from './util';
 
 /** Tone voice: the prototype's `vTone` options. Times in seconds, `vol` is peak gain. */
 export interface ToneParams {
@@ -59,11 +59,24 @@ export interface KickParams {
 export type VoiceParams = ToneParams | NoiseParams | KickParams;
 
 const MAX_OSC = 3;
+/** Default detune set; shared so a trigger does not allocate. */
+const DET0: readonly number[] = [0];
 const SUB = 32;
+
+// Scratch for one voice at a time (voices render sequentially). Float64 so intermediate values
+// keep double precision exactly as the per-sample chain did.
+const X = new Float64Array(BLOCK_SIZE);
+const ENV = new Float64Array(BLOCK_SIZE);
+const HZ = new Float64Array(BLOCK_SIZE);
 
 /**
  * One generic voice. Preallocated; `trigger` resets state without allocating. Renders additively
  * into mono dry/delay/reverb send buffers from a sample offset.
+ *
+ * Rendering is block-based: sources, envelope and filter each fill or process a scratch block in
+ * their own loop, and the mix loop here combines them. The per-sample order of operations is the
+ * one the original sample-by-sample chain used, so the output is bit-identical; the point is
+ * that no fraction crosses a function boundary per sample (PERFORMANCE.md §3).
  */
 export class Voice {
   private readonly osc = [new Oscillator(), new Oscillator(), new Oscillator()];
@@ -79,10 +92,12 @@ export class Voice {
   private fEnvActive = false;
   private baseFreq = 0;
   private det = [0, 0, 0];
-  private gain = 0;
+  /** Envelope level at the last rendered sample (stealing heuristic). */
+  private readonly gain = new Float64Array(1);
   private send = 0;
   private rev = 0;
   private wob = false;
+  /** Samples into the current 32-sample sub-block (filter envelope and wobble update rate). */
   private sub = 0;
   private filterType: BiquadType = 'lowpass';
   private filterQ = 0;
@@ -111,7 +126,7 @@ export class Voice {
 
   /** Current envelope level estimate, for the stealing heuristic. */
   get level(): number {
-    return this.gain;
+    return this.gain[0]!;
   }
 
   trigger(p: VoiceParams, startFrame: number, age: number): void {
@@ -124,12 +139,12 @@ export class Voice {
     this.fEnvActive = false;
     this.useFilter = false;
     this.wob = false;
-    this.gain = 0;
+    this.gain[0] = 0;
     this.send = p.kind === 'kick' ? 0 : (p.send ?? 0);
     this.rev = p.kind === 'kick' ? 0 : (p.rev ?? 0);
     switch (p.kind) {
       case 'tone': {
-        const det = p.det ?? [0];
+        const det = p.det ?? DET0;
         this.nOsc = Math.min(MAX_OSC, det.length);
         for (let i = 0; i < this.nOsc; i++) {
           this.det[i] = det[i]!;
@@ -200,8 +215,9 @@ export class Voice {
   }
 
   /**
-   * Render frames [from, to) of the block whose first frame is `blockStart`, adding into the
-   * buffers. `wobCents` is the mood LFO value for this block.
+   * Render frames [first, nFrames) of the block whose first frame is `blockStart`, adding into the
+   * buffers. `wobCents` is the mood LFO value for this block. Works in sub-blocks of SUB samples
+   * aligned to the voice's own counter, because the filter envelope and wobble update there.
    */
   render(
     dry: Float32Array,
@@ -215,61 +231,64 @@ export class Voice {
     if (!p) return;
     const first = Math.max(0, this.startFrame - blockStart);
     if (first >= nFrames) return;
+    const sr = this.sampleRate;
     const inv = 1 / Math.sqrt(this.nOsc);
-    for (let i = first; i < nFrames; i++) {
-      // Sub-block parameter updates (filter envelope, wobble).
+    const x = X;
+    const env = ENV;
+    let i = first;
+    while (i < nFrames) {
       if (this.sub === 0) {
         if (this.wob) this.applyFrequencies(wobCents);
         if (this.fEnvActive) {
-          let f = this.fRamp.next();
-          for (let k = 1; k < SUB; k++) f = this.fRamp.next();
-          this.filter.set(this.filterType, f, this.sampleRate, this.filterQ);
+          const f = this.fRamp.advance(SUB);
+          this.filter.set(this.filterType, f, sr, this.filterQ);
         }
       }
-      this.sub = (this.sub + 1) % SUB;
-
-      let x: number;
-      let env: number;
+      const seg = Math.min(SUB - this.sub, nFrames - i);
+      const end = i + seg;
+      // Envelope first: where it ends, the voice stops, and the sources only need to run that far.
+      let valid: number;
       switch (p.kind) {
         case 'tone': {
-          x = 0;
-          for (let k = 0; k < this.nOsc; k++) x += this.osc[k]!.next();
-          x *= inv;
-          env = this.adsr.next();
-          if (!this.adsr.active) {
-            this.params = null;
-            this.gain = 0;
-            return;
-          }
+          valid = this.adsr.render(env, i, end);
+          this.osc[0]!.render(x, i, valid, false, null, sr);
+          for (let k = 1; k < this.nOsc; k++) this.osc[k]!.render(x, i, valid, true, null, sr);
+          for (let j = i; j < valid; j++) x[j] = x[j]! * inv;
           break;
         }
-        case 'noise':
-          x = this.rng.next();
-          env = this.exp.next();
-          if (!this.exp.active) {
-            this.params = null;
-            this.gain = 0;
-            return;
-          }
+        case 'noise': {
+          valid = this.exp.render(env, i, end);
+          // The sample-by-sample chain drew the noise before it saw the envelope end, so the
+          // generator advances one extra step when the voice ends inside this block.
+          this.rng.fill(x, i, Math.min(end, valid + 1));
           break;
+        }
         case 'kick': {
-          this.osc[0]!.setFrequency(this.pRamp.next(), this.sampleRate);
-          x = this.osc[0]!.next();
-          env = this.exp.next();
-          if (!this.exp.active) {
-            this.params = null;
-            this.gain = 0;
-            return;
-          }
+          valid = this.exp.render(env, i, end);
+          this.pRamp.render(HZ, i, valid);
+          this.osc[0]!.render(x, i, valid, false, HZ, sr);
           break;
         }
       }
-      if (this.useFilter) x = this.filter.process(x);
-      const y = x * env;
-      this.gain = env;
-      dry[i]! += y;
-      if (this.send) delaySend[i]! += y * this.send;
-      if (this.rev) reverbSend[i]! += y * this.rev;
+      if (valid > i) {
+        if (this.useFilter) this.filter.processBlock(x, i, valid);
+        const send = this.send;
+        const rev = this.rev;
+        for (let j = i; j < valid; j++) {
+          const y = x[j]! * env[j]!;
+          dry[j] = dry[j]! + y;
+          if (send) delaySend[j] = delaySend[j]! + y * send;
+          if (rev) reverbSend[j] = reverbSend[j]! + y * rev;
+        }
+        this.gain[0] = env[valid - 1]!;
+      }
+      if (valid < end) {
+        this.params = null;
+        this.gain[0] = 0;
+        return;
+      }
+      this.sub = (this.sub + seg) % SUB;
+      i = end;
     }
   }
 }

@@ -12,6 +12,18 @@ interface SeedbeatPerfHooks {
   };
   reset(): void;
   session(): { score: number; combo: number; judged: number; ended: boolean };
+  /** Latest worklet stats (zeros without audio). */
+  audio(): {
+    voices: number;
+    peakVoices: number;
+    steals: number;
+    periodMs: number;
+    maxGapMs: number;
+    stalls: number;
+    lastStallMs: number;
+    maxBusyMs: number;
+    lastStallAt: string;
+  };
   ready: boolean;
 }
 interface Window {

@@ -8,6 +8,9 @@ export const SAVE_VERSION = 1;
 export type LanePalette = 'mood' | 'cb-a' | 'cb-b' | 'high-contrast';
 export type QualityMode = 'auto' | 'high' | 'battery';
 export type FrameCap = 'auto' | 60 | 30;
+/** AudioContext buffer: 'low' = interactive (tightest), 'balanced', 'stable' = playback (largest). */
+export type AudioBuffer = 'low' | 'balanced' | 'stable';
+export const AUDIO_BUFFERS: readonly AudioBuffer[] = ['low', 'balanced', 'stable'];
 export type NoteSkin = 'classic' | 'neon' | 'pixel' | 'glass';
 export type HighwayStyle = 'default' | 'grid' | 'minimal';
 export const NOTE_SKINS: readonly NoteSkin[] = ['classic', 'neon', 'pixel', 'glass'];
@@ -32,6 +35,8 @@ export interface Settings {
   reducedMotion: 'system' | 'on' | 'off';
   quality: QualityMode;
   frameCap: FrameCap;
+  /** Output buffer size; larger absorbs scheduling hiccups on phones at the cost of latency (calibration compensates). */
+  audioBuffer: AudioBuffer;
   diagnostics: boolean;
   /** Menu blips from the synth. */
   menuSounds: boolean;
@@ -98,6 +103,7 @@ export const DEFAULT_SETTINGS: Settings = {
   reducedMotion: 'system',
   quality: 'auto',
   frameCap: 'auto',
+  audioBuffer: 'low',
   diagnostics: false,
   menuSounds: true,
   noteSkin: 'classic',
@@ -142,8 +148,13 @@ export function songKey(
  * Upgrade any stored value to the current schema. Unknown or corrupt input yields defaults;
  * known fields are kept, missing ones filled, so adding a setting never breaks old saves.
  */
-export function migrate(raw: unknown): SaveV1 {
+/**
+ * Upgrade any stored shape to the current one. `platform` supplies device-dependent defaults for
+ * settings the stored save does not have yet (see platform/defaults.ts).
+ */
+export function migrate(raw: unknown, platform: Partial<Settings> = {}): SaveV1 {
   const d = defaultSave();
+  Object.assign(d.settings, platform);
   if (!raw || typeof raw !== 'object') return d;
   const r = raw as Partial<SaveV1> & { v?: number };
   // v0 (prototype localStorage) or v1: same shape as far as we read it.
@@ -158,6 +169,7 @@ export function migrate(raw: unknown): SaveV1 {
   settings.visualOffsetMs = clampNum(settings.visualOffsetMs, -500, 500, 0);
   if (!NOTE_SKINS.includes(settings.noteSkin)) settings.noteSkin = 'classic';
   if (!HIGHWAY_STYLES.includes(settings.highwayStyle)) settings.highwayStyle = 'default';
+  if (!AUDIO_BUFFERS.includes(settings.audioBuffer)) settings.audioBuffer = 'low';
   const profile = isObject(r.profile)
     ? { ...d.profile, ...(r.profile as Partial<SaveV1['profile']>) }
     : d.profile;

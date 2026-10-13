@@ -8,19 +8,27 @@ export type BiquadType = 'lowpass' | 'highpass' | 'bandpass' | 'highshelf' | 'lo
  * gain in dB. Coefficients are recomputed only on `set`, which is cheap enough for per-block
  * modulation (filter envelopes update every 32 samples).
  */
+// Coefficients and history in one Float64Array so the state can be read into locals per block.
+const B0 = 0;
+const B1 = 1;
+const B2 = 2;
+const A1 = 3;
+const A2 = 4;
+const X1 = 5;
+const X2 = 6;
+const Y1 = 7;
+const Y2 = 8;
+
 export class Biquad {
-  private b0 = 1;
-  private b1 = 0;
-  private b2 = 0;
-  private a1 = 0;
-  private a2 = 0;
-  private x1 = 0;
-  private x2 = 0;
-  private y1 = 0;
-  private y2 = 0;
+  private readonly s = new Float64Array(9);
+
+  constructor() {
+    this.s[B0] = 1;
+  }
 
   reset(): void {
-    this.x1 = this.x2 = this.y1 = this.y2 = 0;
+    const s = this.s;
+    s[X1] = s[X2] = s[Y1] = s[Y2] = 0;
   }
 
   /** Configure. `q` is dB for lowpass/highpass, linear for bandpass; `gainDb` for shelves. */
@@ -85,29 +93,60 @@ export class Biquad {
         break;
       }
     }
-    this.b0 = b0 / a0;
-    this.b1 = b1 / a0;
-    this.b2 = b2 / a0;
-    this.a1 = a1 / a0;
-    this.a2 = a2 / a0;
+    const s = this.s;
+    s[B0] = b0 / a0;
+    s[B1] = b1 / a0;
+    s[B2] = b2 / a0;
+    s[A1] = a1 / a0;
+    s[A2] = a2 / a0;
   }
 
   /** Raw coefficient set (used by the K-weighting filters, whose coefficients are tabulated). */
   setCoefficients(b0: number, b1: number, b2: number, a1: number, a2: number): void {
-    this.b0 = b0;
-    this.b1 = b1;
-    this.b2 = b2;
-    this.a1 = a1;
-    this.a2 = a2;
+    const s = this.s;
+    s[B0] = b0;
+    s[B1] = b1;
+    s[B2] = b2;
+    s[A1] = a1;
+    s[A2] = a2;
   }
 
   process(x: number): number {
-    const y =
-      this.b0 * x + this.b1 * this.x1 + this.b2 * this.x2 - this.a1 * this.y1 - this.a2 * this.y2;
-    this.x2 = this.x1;
-    this.x1 = x;
-    this.y2 = this.y1;
-    this.y1 = y;
+    const s = this.s;
+    const x1 = s[X1]!;
+    const y1 = s[Y1]!;
+    const y = s[B0]! * x + s[B1]! * x1 + s[B2]! * s[X2]! - s[A1]! * y1 - s[A2]! * s[Y2]!;
+    s[X2] = x1;
+    s[X1] = x;
+    s[Y2] = y1;
+    s[Y1] = y;
     return y;
+  }
+
+  /** Filter buf[from, to) in place; the block form of `process` with the state in locals. */
+  processBlock(buf: Float64Array, from: number, to: number): void {
+    const s = this.s;
+    const b0 = s[B0]!;
+    const b1 = s[B1]!;
+    const b2 = s[B2]!;
+    const a1 = s[A1]!;
+    const a2 = s[A2]!;
+    let x1 = s[X1]!;
+    let x2 = s[X2]!;
+    let y1 = s[Y1]!;
+    let y2 = s[Y2]!;
+    for (let i = from; i < to; i++) {
+      const x = buf[i]!;
+      const y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+      x2 = x1;
+      x1 = x;
+      y2 = y1;
+      y1 = y;
+      buf[i] = y;
+    }
+    s[X1] = x1;
+    s[X2] = x2;
+    s[Y1] = y1;
+    s[Y2] = y2;
   }
 }

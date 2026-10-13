@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks';
 import { controller } from '../app/controller';
 import { HIGHWAY_LIST, NOTE_SKIN_LIST, unlocked, type Cosmetic } from '../app/progression';
 import { save, settings, showToast } from '../app/state';
-import type { FrameCap, LanePalette, QualityMode } from '../save/schema';
+import type { AudioBuffer, FrameCap, LanePalette, QualityMode } from '../save/schema';
 import { Choice, Range, Screen, Toggle } from './components';
 import { LatencyTest } from './LatencyTest';
 
@@ -292,6 +292,17 @@ export function SettingsScreen() {
           { value: 30, label: '30' },
         ]}
         onChange={(frameCap) => set({ frameCap })}
+      />
+      <Choice<AudioBuffer>
+        label="Audio buffer"
+        desc="Low is the tightest timing. Try Balanced or Stable if the music stutters; recalibrate after changing. Applies on the next song."
+        value={s.audioBuffer}
+        options={[
+          { value: 'low', label: 'Low latency' },
+          { value: 'balanced', label: 'Balanced' },
+          { value: 'stable', label: 'Stable' },
+        ]}
+        onChange={(audioBuffer) => set({ audioBuffer })}
       />
       <Toggle
         label="Diagnostics overlay"
