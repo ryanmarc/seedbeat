@@ -1,34 +1,118 @@
 /**
- * Seedbeat AudioWorkletProcessor entry. Registered under the name below.
- * M2 fills in the sequencer and synthesis; for now it emits silence and announces itself.
+ * Seedbeat AudioWorkletProcessor. Registered as PROCESSOR_NAME. All music is sequenced and
+ * synthesized here on the audio thread; the main thread only sends control messages.
  */
-import { BLOCK_SIZE } from '@seedbeat/dsp';
-import { PROTOCOL_VERSION, type MainToWorklet, type WorkletToMain } from './protocol';
-
-export const PROCESSOR_NAME = 'seedbeat';
+import { isGeneratorVersion } from '@seedbeat/core';
+import { BLOCK_SIZE, Engine } from '@seedbeat/dsp';
+import {
+  PROCESSOR_NAME,
+  PROTOCOL_VERSION,
+  STATUS_INTERVAL_SEC,
+  type MainToWorklet,
+  type WorkletToMain,
+} from './protocol';
+import { Sequencer } from './sequencer';
 
 class SeedbeatProcessor extends AudioWorkletProcessor {
+  private readonly engine = new Engine(sampleRate);
+  private readonly seq = new Sequencer(this.engine, sampleRate);
+  private readonly statusEvery = Math.max(
+    1,
+    Math.round((STATUS_INTERVAL_SEC * sampleRate) / BLOCK_SIZE),
+  );
+  private blocks = 0;
+  private endedSent = false;
+  private readonly silentL = new Float32Array(BLOCK_SIZE);
+  private readonly silentR = new Float32Array(BLOCK_SIZE);
+
   constructor() {
     super();
-    this.port.onmessage = (e: MessageEvent<MainToWorklet>) => this.onMessage(e.data);
-    this.post({ type: 'ready', protocolVersion: PROTOCOL_VERSION });
+    this.port.onmessage = (e: MessageEvent<MainToWorklet>) => {
+      try {
+        this.onMessage(e.data);
+      } catch (err) {
+        this.post({ type: 'error', message: err instanceof Error ? err.message : String(err) });
+      }
+    };
+    this.post({
+      type: 'ready',
+      protocolVersion: PROTOCOL_VERSION,
+      latencyFrames: this.engine.latencySamples,
+    });
   }
 
   private post(msg: WorkletToMain): void {
     this.port.postMessage(msg);
   }
 
-  private onMessage(_msg: MainToWorklet): void {
-    // M2: start/stop the sequencer.
+  private onMessage(msg: MainToWorklet): void {
+    switch (msg.type) {
+      case 'start': {
+        if (!isGeneratorVersion(msg.generatorVersion)) {
+          this.post({
+            type: 'error',
+            message: `Unknown generator version ${msg.generatorVersion}`,
+          });
+          return;
+        }
+        const startFrame = Math.round(msg.startTime * sampleRate);
+        this.seq.start({
+          seed: msg.seed,
+          mood: msg.mood,
+          mode: msg.mode,
+          startFrame,
+          ...(msg.rate !== undefined ? { rate: msg.rate } : {}),
+          ...(msg.countIn !== undefined ? { countIn: msg.countIn } : {}),
+          ...(msg.fromBar !== undefined ? { fromBar: msg.fromBar } : {}),
+          ...(msg.toBar !== undefined ? { toBar: msg.toBar } : {}),
+        });
+        this.endedSent = false;
+        break;
+      }
+      case 'pause':
+        this.seq.pause(currentFrame);
+        break;
+      case 'resume':
+        this.seq.resume(Math.round(msg.atTime * sampleRate));
+        break;
+      case 'stop':
+        this.seq.stop();
+        break;
+      case 'volumes':
+        if (msg.master !== undefined) this.engine.masterGain = msg.master;
+        if (msg.music !== undefined) this.engine.musicGain = msg.music;
+        if (msg.hit !== undefined) this.engine.hitGain = msg.hit;
+        break;
+      case 'hitSound':
+        this.seq.hitSound(msg.judgement, currentFrame);
+        break;
+    }
   }
 
   process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
     const out = outputs[0];
-    if (out) {
-      for (const channel of out) {
-        if (channel.length !== BLOCK_SIZE) continue;
-        channel.fill(0);
-      }
+    const l = out?.[0] ?? this.silentL;
+    const r = out?.[1] ?? l;
+    const n = l.length;
+    this.seq.process(l, r, n, currentFrame);
+    if (out && out.length > 2) for (let c = 2; c < out.length; c++) out[c]!.set(l);
+
+    if (++this.blocks % this.statusEvery === 0) {
+      this.post({
+        type: 'status',
+        frame: this.seq.songFrameAt(currentFrame),
+        ctxTime: currentFrame / sampleRate,
+        bar: this.seq.currentBar,
+        step: this.seq.currentStep,
+        playing: this.seq.isPlaying,
+        voices: this.engine.stats.voices,
+        peakVoices: this.engine.stats.peakVoices,
+        steals: this.engine.stats.steals,
+      });
+    }
+    if (this.seq.hasEnded && !this.endedSent) {
+      this.endedSent = true;
+      this.post({ type: 'ended' });
     }
     return true;
   }

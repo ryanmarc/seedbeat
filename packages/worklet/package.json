@@ -3,10 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "AudioWorkletProcessor: sample-accurate sequencer (uses core) plus dsp voices, and the main↔audio message protocol.",
+  "description": "AudioWorkletProcessor: sample-accurate sequencer (uses core) plus dsp voices, and the main\u2194audio message protocol.",
   "exports": {
     ".": "./src/index.ts",
-    "./protocol": "./src/protocol.ts"
+    "./protocol": "./src/protocol.ts",
+    "./sequencer": "./src/sequencer.ts",
+    "./offline": "./src/offline.ts"
   },
   "dependencies": {
     "@seedbeat/core": "workspace:*",

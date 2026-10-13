@@ -12,6 +12,7 @@
   "dependencies": {
     "@preact/signals": "2.11.3",
     "@seedbeat/core": "workspace:*",
+    "@seedbeat/dsp": "workspace:*",
     "@seedbeat/worklet": "workspace:*",
     "idb-keyval": "6.3.0",
     "pixi.js": "8.22.0",

@@ -2,13 +2,32 @@
  * @seedbeat/dsp
  *
  * Pure DSP with no Web Audio types, so the same code renders offline in Node for tests
- * and inside the AudioWorklet in the browser. Filled in during M2.
+ * and inside the AudioWorklet in the browser.
  */
-
-/** Render block size used by AudioWorklet; the sequencer and voice pool are sized around it. */
-export const BLOCK_SIZE = 128;
-
-/** Clamp a sample to the [-1, 1] range. */
-export function clampSample(x: number): number {
-  return x < -1 ? -1 : x > 1 ? 1 : x;
-}
+export { BLOCK_SIZE, VOICE_POOL, HIT_VOICE_RESERVE, Engine, type EngineStats } from './engine';
+export {
+  Voice,
+  type VoiceParams,
+  type ToneParams,
+  type NoiseParams,
+  type KickParams,
+} from './voice';
+export {
+  eventTriggers,
+  countInTrigger,
+  hitSoundTriggers,
+  MOOD_MIX,
+  type Mood,
+  type MoodMix,
+  type MusicEvent,
+  type Trigger,
+  type Judgement,
+} from './presets';
+export { Oscillator, type Wave } from './osc';
+export { Biquad, type BiquadType } from './biquad';
+export { AdsrEnv, ExpEnv, ExpRamp } from './env';
+export { FeedbackDelay } from './delay';
+export { Reverb } from './reverb';
+export { Compressor, Limiter } from './dynamics';
+export { measureLoudness, truePeak, phoneWeight, type LoudnessResult } from './meter';
+export { dbToGain, gainToDb, mtof, clamp, clampSample, Xorshift } from './util';

@@ -22,7 +22,8 @@ export default defineConfig({
       {
         test: {
           name: 'audio',
-          include: ['packages/dsp/audio/**/*.test.ts'],
+          include: ['packages/worklet/audio/**/*.test.ts'],
+          testTimeout: 600_000,
         },
       },
     ],
