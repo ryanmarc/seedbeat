@@ -107,6 +107,7 @@ export class Sequencer {
     this.genBar = this.fromBar;
     this.pre.length = 0;
     this.engine.configure(o.mood, song.sd / this.rate);
+    this.engine.setTransport(true);
     if (o.countIn) {
       // Four clicks on the beats before the first bar played.
       for (let i = 0; i < 4; i++) {
@@ -121,6 +122,7 @@ export class Sequencer {
     this.playing = false;
     this.pausedAtFrame = nowFrame;
     this.engine.releaseAll();
+    this.engine.setTransport(false);
   }
 
   /** Continue so that the song position frozen at pause lands on `atFrame`. */
@@ -128,6 +130,7 @@ export class Sequencer {
     if (this.playing || !this.song) return;
     this.startFrame += atFrame - this.pausedAtFrame;
     this.playing = true;
+    this.engine.setTransport(true);
   }
 
   stop(): void {
@@ -135,6 +138,7 @@ export class Sequencer {
     this.song = null;
     this.pre.length = 0;
     this.engine.allNotesOff();
+    this.engine.setTransport(false);
   }
 
   /** Calibration clicks: a short square blip every `intervalFrames`, accented every fourth. */

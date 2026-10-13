@@ -11,6 +11,8 @@ export const VOICE_POOL = 64;
 export const HIT_VOICE_RESERVE = 8;
 /** Base output gain before the per-mood trim (the prototype's 0.85). */
 const BASE_GAIN = 0.85;
+/** Vinyl crackle level in the mono mix (the prototype used 0.6; lowered after playtest, 2026-10-13). */
+const CRACKLE_MIX = 0.35;
 
 export interface EngineStats {
   /** Voices active at the end of the last block. */
@@ -57,6 +59,8 @@ export class Engine {
   private reverbWet = 0.38;
   private crackle = false;
   private wobble = false;
+  /** Ambience (vinyl crackle) only while the sequencer is playing: not after stop, not while paused. */
+  private transport = false;
   private lfoPhase = 0;
   /** Crackle click state [amp, samplesLeft]; typed-array slots because they change per sample. */
   private readonly click = new Float64Array(2);
@@ -116,6 +120,11 @@ export class Engine {
     this.lfoPhase = 0;
     this.click[0] = 0;
     this.click[1] = 0;
+  }
+
+  /** The sequencer tells the engine when music is running, so ambience starts and stops with it. */
+  setTransport(playing: boolean): void {
+    this.transport = playing;
   }
 
   /** Current mood. */
@@ -208,14 +217,14 @@ export class Engine {
     const bufR = this.bufR;
     const gBuf = this.gBuf;
     this.delay.processBlock(ds, wet, n);
-    const crackle = this.crackle;
+    const crackle = this.crackle && this.transport;
     if (crackle) this.crackleBlock(crk, n);
     this.reverb.processBlock(rs, rvL, rvR, n);
     const delayWet = this.delayWet;
     const reverbWet = this.reverbWet;
     for (let i = 0; i < n; i++) {
       let mono = dry[i]! + wet[i]! * delayWet;
-      if (crackle) mono += crk[i]! * 0.6;
+      if (crackle) mono += crk[i]! * CRACKLE_MIX;
       bufL[i] = mono + rvL[i]! * reverbWet;
       bufR[i] = mono + rvR[i]! * reverbWet;
     }

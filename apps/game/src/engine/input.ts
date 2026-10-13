@@ -51,11 +51,45 @@ export function laneFromX(
   return lane < 0 ? 0 : lane > 3 ? 3 : lane;
 }
 
+/** Fraction of a lane a sliding finger must cross into the next lane before it switches. */
+export const SLIDE_HYSTERESIS = 0.12;
+
+/**
+ * Lane for a pointer that is already down on `current`: the same mapping as `laneFromX`, but the
+ * finger has to travel SLIDE_HYSTERESIS of a lane past the boundary before the lane changes, so a
+ * thumb resting near a divider does not flicker between lanes (and drop a hold).
+ */
+export function laneFromXSticky(
+  x: number,
+  layout: { touch: boolean; width: number; highwayLeft: number; highwayWidth: number },
+  current: number,
+): number {
+  if (current < 0) return laneFromX(x, layout);
+  const { touch, width, highwayLeft, highwayWidth } = layout;
+  const f = (touch ? x / width : (x - highwayLeft) / highwayWidth) * 4;
+  if (f >= current - SLIDE_HYSTERESIS && f < current + 1 + SLIDE_HYSTERESIS) return current;
+  return laneFromX(x, layout);
+}
+
 /** Tracks pointerId → lane so multi-touch and holds release the lane they pressed. */
 export class PointerLanes {
   private readonly map = new Map<number, number>();
   down(pointerId: number, lane: number): void {
     this.map.set(pointerId, lane);
+  }
+  /** Lane this pointer is on, or -1 if it is not down. */
+  laneOf(pointerId: number): number {
+    return this.map.get(pointerId) ?? -1;
+  }
+  /**
+   * A down pointer slid to `lane`. Returns the lane it left, or -1 when nothing changed (not down,
+   * or still on the same lane). The caller releases the old lane and presses the new one.
+   */
+  move(pointerId: number, lane: number): number {
+    const prev = this.map.get(pointerId);
+    if (prev === undefined || prev === lane) return -1;
+    this.map.set(pointerId, lane);
+    return prev;
   }
   /** Returns the lane this pointer pressed, or -1 if unknown. */
   up(pointerId: number): number {

@@ -1,4 +1,12 @@
-import { eventMs, type InputSink, GamepadLanes, KeyMap, PointerLanes, laneFromX } from './input';
+import {
+  eventMs,
+  type InputSink,
+  GamepadLanes,
+  KeyMap,
+  PointerLanes,
+  laneFromX,
+  laneFromXSticky,
+} from './input';
 
 export interface InputLayout {
   touch: boolean;
@@ -41,6 +49,18 @@ export function attachInput(opts: InputOptions, sink: InputSink): () => void {
     if (lane < 0) return;
     sink({ lane, down: false, perfMs: eventMs(e.timeStamp, now()), source: 'pointer' });
   };
+  // Slides: a finger that moves into another lane without lifting releases the lane it was on
+  // and presses the new one, with the same timestamp, so holds end and the next note is hit.
+  const onPointerMove = (e: PointerEvent): void => {
+    const current = pointers.laneOf(e.pointerId);
+    if (current < 0) return;
+    const lane = laneFromXSticky(e.clientX, opts.layout(), current);
+    const left = pointers.move(e.pointerId, lane);
+    if (left < 0) return;
+    const perfMs = eventMs(e.timeStamp, now());
+    sink({ lane: left, down: false, perfMs, source: 'pointer' });
+    sink({ lane, down: true, perfMs, source: 'pointer' });
+  };
   const onKeyDown = (e: KeyboardEvent): void => {
     if (e.repeat) return;
     const lane = keys.laneFor(e.code);
@@ -56,12 +76,14 @@ export function attachInput(opts: InputOptions, sink: InputSink): () => void {
 
   canvas.style.touchAction = 'none';
   canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
+  canvas.addEventListener('pointermove', onPointerMove);
   canvas.addEventListener('pointerup', onPointerUp);
   canvas.addEventListener('pointercancel', onPointerUp);
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);
   return () => {
     canvas.removeEventListener('pointerdown', onPointerDown);
+    canvas.removeEventListener('pointermove', onPointerMove);
     canvas.removeEventListener('pointerup', onPointerUp);
     canvas.removeEventListener('pointercancel', onPointerUp);
     window.removeEventListener('keydown', onKeyDown);

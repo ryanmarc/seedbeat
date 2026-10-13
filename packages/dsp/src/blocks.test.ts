@@ -187,3 +187,28 @@ describe('engine', () => {
     }
   });
 });
+
+describe('lo-fi crackle lifecycle', () => {
+  it('only hisses while the transport is playing', () => {
+    const e = new Engine(SR);
+    e.configure('lofi', 0.14);
+    const l = new Float32Array(BLOCK_SIZE);
+    const r = new Float32Array(BLOCK_SIZE);
+    const peak = (): number => {
+      let m = 0;
+      for (let i = 0; i < 40; i++) {
+        e.render(l, r, BLOCK_SIZE, i * BLOCK_SIZE);
+        for (let k = 0; k < BLOCK_SIZE; k++) m = Math.max(m, Math.abs(l[k]!));
+      }
+      return m;
+    };
+    expect(peak()).toBe(0); // configured but not playing: silent
+    e.setTransport(true);
+    expect(peak()).toBeGreaterThan(0.0005);
+    e.setTransport(false);
+    // The 8 Hz DC blocker rings for ~100 ms after the last click; let it settle, then silence.
+    peak();
+    peak();
+    expect(peak()).toBeLessThan(1e-4);
+  });
+});

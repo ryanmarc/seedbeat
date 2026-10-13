@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { GameClock, eventMs } from './clock';
 import { estimateOffset, tapDeviation } from './calibration';
-import { GamepadLanes, KeyMap, PointerLanes, laneFromX, type LaneEvent } from './input';
+import {
+  GamepadLanes,
+  KeyMap,
+  PointerLanes,
+  laneFromX,
+  laneFromXSticky,
+  type LaneEvent,
+} from './input';
 import { PacingController, decidePacing } from './pacing';
 
 describe('eventMs', () => {
@@ -203,5 +210,29 @@ describe('input mapping', () => {
       { lane: 1, down: true, perfMs: 10, source: 'gamepad' },
       { lane: 1, down: false, perfMs: 30, source: 'gamepad' },
     ]);
+  });
+});
+
+describe('slides between lanes', () => {
+  const touch = { touch: true, width: 400, highwayLeft: 0, highwayWidth: 0 };
+  it('a down pointer keeps its lane until the finger is clearly in the next one', () => {
+    // Lane 1 spans x 100–200. Just past the divider stays put; further in switches.
+    expect(laneFromXSticky(205, touch, 1)).toBe(1);
+    expect(laneFromXSticky(215, touch, 1)).toBe(2);
+    expect(laneFromXSticky(95, touch, 1)).toBe(1);
+    expect(laneFromXSticky(85, touch, 1)).toBe(0);
+    // A pointer that is not down maps plainly.
+    expect(laneFromXSticky(205, touch, -1)).toBe(2);
+  });
+  it('PointerLanes.move reports the lane left, once, and up releases the lane slid to', () => {
+    const p = new PointerLanes();
+    p.down(7, 0);
+    expect(p.move(7, 0)).toBe(-1);
+    expect(p.move(7, 2)).toBe(0);
+    expect(p.laneOf(7)).toBe(2);
+    expect(p.move(7, 2)).toBe(-1);
+    expect(p.move(99, 1)).toBe(-1); // not down
+    expect(p.up(7)).toBe(2);
+    expect(p.move(7, 3)).toBe(-1); // lifted
   });
 });
