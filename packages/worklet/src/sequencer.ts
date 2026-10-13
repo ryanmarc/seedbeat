@@ -114,7 +114,34 @@ export class Sequencer {
   stop(): void {
     this.playing = false;
     this.song = null;
+    this.pre.length = 0;
     this.engine.allNotesOff();
+  }
+
+  /** Calibration clicks: a short square blip every `intervalFrames`, accented every fourth. */
+  clicks(startFrame: number, count: number, intervalFrames: number): void {
+    this.stop();
+    this.engine.configure('chiptune', 0.15);
+    for (let i = 0; i < count; i++) {
+      this.pre.push({
+        frame: startFrame + Math.round(i * intervalFrames),
+        trigger: {
+          offset: 0,
+          params: {
+            kind: 'tone',
+            wave: 'square',
+            freq: i % 4 === 0 ? 1760 : 1320,
+            dur: 0.03,
+            vol: 0.12,
+            a: 0.001,
+            d: 0.03,
+            s: 0,
+            r: 0.02,
+          },
+        },
+      });
+    }
+    this.playing = true;
   }
 
   hitSound(j: Judgement, atFrame: number): void {
@@ -134,8 +161,8 @@ export class Sequencer {
   process(outL: Float32Array, outR: Float32Array, nFrames: number, blockStart: number): void {
     const s = this.song;
     const end = blockStart + nFrames;
-    if (s && this.playing) {
-      // Count-in clicks.
+    if (this.playing) {
+      // Count-in and calibration clicks.
       for (let i = this.pre.length - 1; i >= 0; i--) {
         const p = this.pre[i]!;
         if (p.frame < end) {
@@ -143,6 +170,8 @@ export class Sequencer {
           this.pre.splice(i, 1);
         }
       }
+    }
+    if (s && this.playing) {
       for (;;) {
         if (this.bar >= this.toBar) {
           if (!this.ended) this.ended = true;

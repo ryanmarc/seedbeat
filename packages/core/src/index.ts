@@ -51,6 +51,7 @@ export { getMotif, type Motif, type MotifNote } from './motif';
 export { getBar, type Bar, type BarEvent, type EventType, type LeadNote } from './bars';
 export {
   buildChart,
+  ChartBuilder,
   chartBar,
   levelAt,
   approachAt,

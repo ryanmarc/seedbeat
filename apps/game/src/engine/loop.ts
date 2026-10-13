@@ -41,6 +41,9 @@ export class GameLoop {
   private last = Number.NaN;
   private running = false;
   monitoring = true;
+  /** Frame-rate cap in Hz (0 = none): frames arriving sooner than 0.9/cap after the last drawn one are skipped. */
+  frameCapHz = 0;
+  private lastDrawn = Number.NaN;
 
   constructor(
     private readonly hooks: LoopHooks,
@@ -72,6 +75,15 @@ export class GameLoop {
       this.stats.skipped++;
       return;
     }
+    if (
+      this.frameCapHz &&
+      !Number.isNaN(this.lastDrawn) &&
+      now - this.lastDrawn < (0.9 * 1000) / this.frameCapHz
+    ) {
+      this.stats.skipped++;
+      return;
+    }
+    this.lastDrawn = now;
     const raw = Number.isNaN(this.last) ? 0 : (now - this.last) / 1000;
     this.last = now;
     const w0 = performance.now();

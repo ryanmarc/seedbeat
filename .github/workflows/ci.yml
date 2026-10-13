@@ -11,9 +11,9 @@ concurrency:
 
 jobs:
   check:
-    name: typecheck · lint · test · golden · build · size · perf
+    name: typecheck · lint · test · golden · build · size · perf · e2e
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
@@ -38,3 +38,5 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - name: Perf harness (software renderer thresholds)
         run: PERF_SECONDS=15 node tools/perf/run.ts
+      - name: End-to-end (Playwright, desktop and phone)
+        run: pnpm test:e2e

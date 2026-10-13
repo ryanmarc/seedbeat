@@ -11,6 +11,8 @@ export interface ViewportInfo {
   touch: boolean;
   /** CSS px of bottom safe area (notch phones). */
   safeAreaBottom: number;
+  /** Touch: raise the hit line further above the pads (settings). */
+  hitLineHigh?: boolean;
 }
 
 export interface Pad {
@@ -77,6 +79,7 @@ const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > 
 
 export function computeLayout(v: ViewportInfo): Layout {
   const { width: W, height: H, touch, safeAreaBottom } = v;
+  const raise = touch && v.hitLineHigh ? 72 : 0;
   const horizonY = Math.max(84, H * 0.17);
   let hitY: number;
   let nearW: number;
@@ -87,7 +90,7 @@ export function computeLayout(v: ViewportInfo): Layout {
     const padH = clamp(H * 0.2, 104, 180);
     padBot = H - safeAreaBottom - 10;
     padTop = padBot - padH;
-    hitY = padTop - 34;
+    hitY = padTop - 34 - raise;
     nearW = Math.min(W - 24, 540, (hitY - horizonY) * 1.1);
     bottom = padTop - 8;
   } else {

@@ -109,24 +109,50 @@ export interface Chart {
 }
 
 /**
- * Chart for bars [0, uptoBar) with cross-bar lane reservation: a lane stays reserved until a hold's
+ * Incremental chart builder with cross-bar lane reservation: a lane stays reserved until a hold's
  * tail plus 1.5 steps (or a tap plus 0.5 steps), so nothing can land inside a hold, even across a
- * bar line. In Song mode `uptoBar` defaults to the song length; Endless must pass it.
+ * bar line. Endless generates bars ahead of the playhead with `next()`; Song mode uses `buildChart`.
+ */
+export class ChartBuilder {
+  private readonly laneFree = [-9, -9, -9, -9];
+  private bar = 0;
+  peakLevel = 0;
+
+  constructor(
+    private readonly song: Song,
+    private readonly difficulty: Difficulty,
+  ) {}
+
+  /** Index of the next bar `next()` will produce. */
+  get nextBar(): number {
+    return this.bar;
+  }
+
+  /** Notes of the next bar that survive lane reservation (may be empty). */
+  next(): ChartNote[] {
+    const s = this.song;
+    const bar = this.bar++;
+    const lv = levelAt(s, this.difficulty, bar);
+    if (lv > this.peakLevel) this.peakLevel = lv;
+    const out: ChartNote[] = [];
+    for (const n of chartBar(s, bar, lv)) {
+      if (n.t < this.laneFree[n.lane]!) continue;
+      out.push(n);
+      this.laneFree[n.lane] = n.end ? n.end + s.sd * 1.5 : n.t + s.sd * 0.5;
+    }
+    return out;
+  }
+}
+
+/**
+ * Chart for bars [0, uptoBar). In Song mode `uptoBar` defaults to the song length; Endless must
+ * pass it.
  */
 export function buildChart(s: Song, difficulty: Difficulty, uptoBar?: number): Chart {
   const bars = uptoBar ?? s.total;
   if (bars === null) throw new Error('buildChart: endless songs need uptoBar');
+  const b = new ChartBuilder(s, difficulty);
   const notes: ChartNote[] = [];
-  const laneFree = [-9, -9, -9, -9];
-  let peakLevel = 0;
-  for (let bar = 0; bar < bars; bar++) {
-    const lv = levelAt(s, difficulty, bar);
-    peakLevel = Math.max(peakLevel, lv);
-    for (const n of chartBar(s, bar, lv)) {
-      if (n.t < laneFree[n.lane]!) continue;
-      notes.push(n);
-      laneFree[n.lane] = n.end ? n.end + s.sd * 1.5 : n.t + s.sd * 0.5;
-    }
-  }
-  return { notes, peakLevel };
+  for (let bar = 0; bar < bars; bar++) for (const n of b.next()) notes.push(n);
+  return { notes, peakLevel: b.peakLevel };
 }

@@ -81,6 +81,10 @@ export interface SceneOptions {
   reducedMotion: boolean;
   /** Draw at this resolution scale (quality tier). */
   resolution: number;
+  judgementTextSize?: 'small' | 'normal' | 'large';
+  showEarlyLate?: boolean;
+  /** Battery saver: fewer particles. */
+  lowFx?: boolean;
 }
 
 export interface SceneFrame {
@@ -90,8 +94,12 @@ export interface SceneFrame {
   perf: number;
   approach: number;
   session: SessionState;
-  /** Paused: effects freeze. Ended runs keep animating until M5's results screen takes over. */
+  /** Paused: effects freeze. */
   paused: boolean;
+  /** Resume countdown beats to show instead of the count-in (0 = none). */
+  countdown?: number;
+  /** Menus: no notes, no end banner, dimmed highway. */
+  idle?: boolean;
 }
 
 const POP_TEXT: Record<Judgement, string> = {
@@ -123,6 +131,8 @@ export class Scene {
   private readonly pal: Palette;
   private readonly song: Song;
   private readonly reducedMotion: boolean;
+  private readonly lowFx: boolean;
+  private readonly showEarlyLate: boolean;
   private readonly beams: Graphics[] = [];
   private readonly beatLines: Sprite[] = [];
   private readonly notes: Sprite[] = [];
@@ -163,6 +173,8 @@ export class Scene {
     this.pal = o.palette;
     this.song = o.song;
     this.reducedMotion = o.reducedMotion;
+    this.lowFx = o.lowFx === true;
+    this.showEarlyLate = o.showEarlyLate !== false;
     const kit = (this.kit = buildTextures(renderer, l, o.palette, o.resolution));
     this.background = createBackground(o.mood, renderer, l, kit, o.resolution, o.palette.lane);
     this.root.addChild(this.background.container);
@@ -369,7 +381,9 @@ export class Scene {
     this.comboLabel.position.set(l.cx, l.comboY + 6);
     this.comboLabel.tint = o.palette.accent2;
     this.comboLabel.visible = false;
-    this.pop = new BitmapText({ text: '', style: { fontFamily: DISPLAY_FONT, fontSize: 22 } });
+    const popSize =
+      o.judgementTextSize === 'small' ? 16 : o.judgementTextSize === 'large' ? 30 : 22;
+    this.pop = new BitmapText({ text: '', style: { fontFamily: DISPLAY_FONT, fontSize: popSize } });
     this.pop.anchor.set(0.5);
     this.pop.position.set(l.cx, l.comboY + 56);
     this.popSub = new BitmapText({ text: '', style: { fontFamily: DATA_FONT, fontSize: 12 } });
@@ -420,7 +434,7 @@ export class Scene {
   private burst(lane: number, colour: number): void {
     const l = this.layout;
     const x = laneCenterX(l, l.nearW, lane);
-    const n = this.reducedMotion ? 4 : 12;
+    const n = this.reducedMotion ? 4 : this.lowFx ? 6 : 12;
     for (let i = 0; i < n && this.pCount < PARTICLES; i++) {
       const k = this.pCount++;
       const p = this.particles[k]!;
@@ -685,7 +699,7 @@ export class Scene {
     }
 
     // ---- end of run (until the results screen exists)
-    if (s.ended && !this.endShown) {
+    if (s.ended && !this.endShown && !f.idle) {
       this.endShown = true;
       this.endBanner.text = s.failed ? 'FAILED' : 'COMPLETE';
       this.endBanner.tint = s.failed ? CHROME.bad : pal.accent2;
@@ -693,7 +707,11 @@ export class Scene {
     }
 
     // ---- count-in
-    const cd = t < 0 && !f.paused && !s.ended ? Math.ceil(-t / beat) : 0;
+    const cd = f.countdown
+      ? f.countdown
+      : t < 0 && !f.paused && !s.ended && !f.idle
+        ? Math.ceil(-t / beat)
+        : 0;
     const show = cd > 0 && cd <= 4 ? cd : 0;
     if (show !== this.lastCountdown) {
       this.lastCountdown = show;

@@ -10,6 +10,9 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@fontsource/chakra-petch": "5.3.0",
+    "@fontsource/jetbrains-mono": "5.3.0",
+    "@fontsource/rubik-mono-one": "5.3.0",
     "@preact/signals": "2.11.3",
     "@seedbeat/core": "workspace:*",
     "@seedbeat/dsp": "workspace:*",

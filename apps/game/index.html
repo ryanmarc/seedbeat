@@ -7,33 +7,14 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
     />
     <meta name="theme-color" content="#0b0912" />
+    <meta
+      name="description"
+      content="Seedbeat: a rhythm game that composes a song and its chart from any text seed."
+    />
     <title>Seedbeat</title>
-    <style>
-      html,
-      body {
-        margin: 0;
-        height: 100%;
-        background: #0b0912;
-        color: #f3effc;
-        font-family: system-ui, sans-serif;
-        overflow: hidden;
-      }
-      #stage {
-        position: fixed;
-        inset: 0;
-      }
-      #ui {
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-      }
-      #ui > * {
-        pointer-events: auto;
-      }
-    </style>
   </head>
   <body>
-    <canvas id="stage"></canvas>
+    <canvas id="stage" aria-label="Rhythm game play field"></canvas>
     <div id="ui"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

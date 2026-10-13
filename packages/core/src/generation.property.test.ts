@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { buildChart, chartBar, levelAt, type Difficulty } from './chart';
+import { ChartBuilder, buildChart, chartBar, levelAt, type Difficulty } from './chart';
 import { getBar, type Bar } from './bars';
 import { MOOD_IDS, type MoodId } from './moods';
 import { makeSong, type Mode } from './song';
@@ -183,6 +183,26 @@ describe('generator v1 invariants', () => {
           expect(dur).toBeLessThanOrEqual(130);
           expect(s.sections[0]!.type).toBe('intro');
           expect(s.sections.at(-1)!.type).toBe('outro');
+        }),
+        { numRuns: RUNS },
+      );
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'ChartBuilder produces exactly what buildChart does, bar by bar',
+    () => {
+      fc.assert(
+        fc.property(arbCase, (c) => {
+          const s = makeSong(c.seed, c.mood, c.mode);
+          const bars = barCount(c.mode, s.total);
+          const whole = buildChart(s, c.diff, bars);
+          const b = new ChartBuilder(s, c.diff);
+          const inc: typeof whole.notes = [];
+          for (let i = 0; i < bars; i++) inc.push(...b.next());
+          expect(inc).toEqual(whole.notes);
+          expect(b.peakLevel).toBe(whole.peakLevel);
         }),
         { numRuns: RUNS },
       );

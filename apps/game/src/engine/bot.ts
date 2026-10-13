@@ -30,6 +30,15 @@ export class AutoplayBot {
     this.events.sort((a, b) => a.t - b.t);
   }
 
+  /** Endless: add notes generated later (they are later than everything queued). */
+  append(notes: readonly ChartNote[]): void {
+    for (const n of notes) {
+      const down = n.t + 0.01;
+      this.events.push({ t: down, lane: n.lane, down: true });
+      this.events.push({ t: n.end ? n.end : down + 0.06, lane: n.lane, down: false });
+    }
+  }
+
   /**
    * Deliver every event with song time ≤ `songTime`. `toPerfMs` maps song seconds to the
    * performance clock so the run judges them at their exact intended time.

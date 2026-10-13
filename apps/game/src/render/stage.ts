@@ -2,6 +2,16 @@ import { Application, type Renderer } from 'pixi.js';
 import type { MoodId, Song } from '@seedbeat/core';
 import { Scene } from './scene';
 import { paletteFor, type LanePaletteId } from './palette';
+
+export interface SceneConfig {
+  mood: MoodId;
+  song: Song;
+  lanes: LanePaletteId;
+  reducedMotion: boolean;
+  judgementTextSize?: 'small' | 'normal' | 'large';
+  showEarlyLate?: boolean;
+  lowFx?: boolean;
+}
 import type { ViewportInfo } from './layout';
 
 /** Chrome background token from DESIGN.md §1. */
@@ -21,13 +31,9 @@ export class Stage {
   readonly app: Application;
   scene: Scene | null = null;
   private resolution: number;
-  private sceneOpts: {
-    mood: MoodId;
-    song: Song;
-    lanes: LanePaletteId;
-    reducedMotion: boolean;
-  } | null = null;
+  private sceneOpts: SceneConfig | null = null;
   touch = false;
+  hitLineHigh = false;
 
   private constructor(app: Application, resolution: number) {
     this.app = app;
@@ -69,8 +75,8 @@ export class Stage {
   }
 
   /** Build (or rebuild) the scene for a song. */
-  setScene(mood: MoodId, song: Song, lanes: LanePaletteId, reducedMotion: boolean): Scene {
-    this.sceneOpts = { mood, song, lanes, reducedMotion };
+  setScene(cfg: SceneConfig): Scene {
+    this.sceneOpts = cfg;
     return this.rebuild();
   }
 
@@ -87,6 +93,9 @@ export class Stage {
       palette: paletteFor(o.mood, o.lanes),
       reducedMotion: o.reducedMotion,
       resolution: this.resolution,
+      ...(o.judgementTextSize ? { judgementTextSize: o.judgementTextSize } : {}),
+      ...(o.showEarlyLate !== undefined ? { showEarlyLate: o.showEarlyLate } : {}),
+      ...(o.lowFx !== undefined ? { lowFx: o.lowFx } : {}),
     });
     this.app.stage.addChild(scene.root);
     this.scene = scene;

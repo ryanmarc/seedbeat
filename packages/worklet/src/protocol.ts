@@ -36,6 +36,13 @@ export type MainToWorklet =
       atTime: number;
     }
   | { type: 'stop' }
+  | {
+      /** Calibration: `count` clicks every `interval` seconds from `startTime` (AudioContext seconds). */
+      type: 'clicks';
+      startTime: number;
+      count: number;
+      interval: number;
+    }
   | { type: 'volumes'; master?: number; music?: number; hit?: number }
   | { type: 'hitSound'; judgement: Judgement };
 

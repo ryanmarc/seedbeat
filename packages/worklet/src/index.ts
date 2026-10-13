@@ -78,6 +78,13 @@ class SeedbeatProcessor extends AudioWorkletProcessor {
       case 'stop':
         this.seq.stop();
         break;
+      case 'clicks':
+        this.seq.clicks(
+          Math.round(msg.startTime * sampleRate),
+          msg.count,
+          msg.interval * sampleRate,
+        );
+        break;
       case 'volumes':
         if (msg.master !== undefined) this.engine.masterGain = msg.master;
         if (msg.music !== undefined) this.engine.musicGain = msg.music;
