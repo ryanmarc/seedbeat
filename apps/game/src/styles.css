@@ -288,7 +288,8 @@ select {
   border-radius: 10px;
   padding: 10px 14px;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
   min-width: 0;
 }
 .btn:hover {
@@ -387,7 +388,7 @@ kbd {
   flex-wrap: wrap;
 }
 .btnrow .btn {
-  flex: 1;
+  flex: 1 1 120px;
 }
 .menurow {
   display: flex;
@@ -569,11 +570,26 @@ kbd {
 /* settings */
 .setting {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
   padding: 10px 0;
   border-bottom: 1px solid var(--line);
+}
+.setting > :last-child {
+  min-width: 0;
+}
+@media (max-width: 520px) {
+  .setting {
+    grid-template-columns: 1fr;
+  }
+  .setting .seg {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .setting input[type='range'] {
+    width: 100%;
+  }
 }
 .setting:last-child {
   border-bottom: 0;
@@ -591,6 +607,7 @@ kbd {
 }
 .setting .seg {
   min-width: 150px;
+  max-width: 100%;
 }
 .toggle {
   width: 48px;

@@ -16,6 +16,18 @@ async function noOverflow(page: Page): Promise<void> {
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(over, 'horizontal overflow px').toBeLessThanOrEqual(0);
+  // Button labels must fit their boxes, and every control must stay inside the viewport.
+  const clipped = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('#ui button')]
+      .filter((b) => b.offsetParent !== null)
+      .filter(
+        (b) =>
+          b.scrollWidth > b.clientWidth + 1 ||
+          b.getBoundingClientRect().right > window.innerWidth + 1,
+      )
+      .map((b) => (b.textContent?.trim() || b.getAttribute('aria-label') || '?').slice(0, 30)),
+  );
+  expect(clipped, 'clipped or off-screen buttons').toEqual([]);
 }
 
 test.describe('game flow', () => {
