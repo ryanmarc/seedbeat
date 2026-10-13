@@ -64,6 +64,7 @@ export {
   type DifficultyName,
 } from './chart';
 export {
+  RELEASE_WINDOWS,
   WINDOWS,
   MISS_GRACE,
   SCORE,

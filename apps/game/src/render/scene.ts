@@ -16,7 +16,7 @@ import {
 } from 'pixi.js';
 import {
   INTENSITY,
-  WINDOWS,
+  RELEASE_WINDOWS,
   sectionFor,
   type Judgement,
   type MoodId,
@@ -656,7 +656,7 @@ export class Scene {
         hv.mesh.visible = true;
         const cap = hv.cap;
         if (ptRaw <= 1.02) {
-          const near = Math.abs(n.end - t) <= WINDOWS.great;
+          const near = Math.abs(n.end - t) <= RELEASE_WINDOWS.great;
           cap.texture = missed
             ? this.kit.tailCapMissed
             : near

@@ -1,5 +1,12 @@
-/** Judgement windows in seconds (TIMING.md §4). Same for heads and releases. */
+/** Judgement windows for note heads, in seconds (TIMING.md §4). */
 export const WINDOWS = { perfect: 0.045, great: 0.09, good: 0.135 } as const;
+/**
+ * Windows for hold releases, twice as wide for Perfect and Great and half again for Good: letting
+ * go is judged by feel rather than by the beat, and the tight head windows made a Perfect release
+ * a matter of luck (playtest, 2026-10-13). Early beyond Good is a drop; a hold still held past
+ * tail + Good is auto-released as a late Good.
+ */
+export const RELEASE_WINDOWS = { perfect: 0.09, great: 0.18, good: 0.2 } as const;
 
 /** Grace beyond the Good window before a note is declared missed in the frame loop (TIMING.md §3). */
 export const MISS_GRACE = 0.03;
@@ -53,11 +60,15 @@ export function judgeHit(absOffset: number): HitJudgement | null {
   return null;
 }
 
-/** Grade a release: `d = tail − t`. Early beyond Good = drop; otherwise by |d|. */
+/** Grade a release: `d = tail − t`. Early beyond the release Good window = drop; otherwise by |d|. */
 export function judgeRelease(d: number): ReleaseJudgement | 'drop' {
-  if (d > WINDOWS.good) return 'drop';
+  if (d > RELEASE_WINDOWS.good) return 'drop';
   const a = Math.abs(d);
-  return a <= WINDOWS.perfect ? 'rperfect' : a <= WINDOWS.great ? 'rgreat' : 'rgood';
+  return a <= RELEASE_WINDOWS.perfect
+    ? 'rperfect'
+    : a <= RELEASE_WINDOWS.great
+      ? 'rgreat'
+      : 'rgood';
 }
 
 export function isRelease(j: Judgement): j is ReleaseJudgement {

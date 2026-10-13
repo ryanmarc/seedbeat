@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { ChartNote } from './chart';
-import { WINDOWS, gradeFor, judgeHit, judgeRelease, multiplier } from './judgement';
+import {
+  RELEASE_WINDOWS,
+  WINDOWS,
+  gradeFor,
+  judgeHit,
+  judgeRelease,
+  multiplier,
+} from './judgement';
 import { createSession, dropHolds, press, release, summarize, update } from './session';
 
 const tap = (t: number, lane: number): ChartNote => ({ t, lane, end: 0 });
@@ -14,10 +21,13 @@ describe('judgement tables', () => {
     expect(judgeHit(0.1)).toBe('good');
     expect(judgeHit(0.135)).toBe('good');
     expect(judgeHit(0.1351)).toBeNull();
-    expect(judgeRelease(0.2)).toBe('drop');
-    expect(judgeRelease(0.135)).toBe('rgood');
+    // Releases use the wider RELEASE_WINDOWS (Perfect 90 ms, Great 180 ms, Good 200 ms).
+    expect(judgeRelease(0.201)).toBe('drop');
+    expect(judgeRelease(0.2)).toBe('rgood');
+    expect(judgeRelease(0.135)).toBe('rgreat');
     expect(judgeRelease(-0.3)).toBe('rgood'); // late releases cap at Good via auto-release
-    expect(judgeRelease(-0.03)).toBe('rperfect');
+    expect(judgeRelease(-0.09)).toBe('rperfect');
+    expect(judgeRelease(0.0901)).toBe('rgreat');
     expect(multiplier(0)).toBe(1);
     expect(multiplier(50)).toBe(1.5);
     expect(multiplier(250)).toBe(2);
@@ -100,7 +110,9 @@ describe('session', () => {
     const s = createSession([hold(1, 0, 2)], { difficulty: 1 });
     update(s, 1);
     press(s, 0, 1);
-    update(s, 2 + WINDOWS.good + 0.001);
+    update(s, 2 + WINDOWS.good + 0.001); // past the head Good window: still held
+    expect(s.events.map((e) => e.judgement)).toEqual(['perfect']);
+    update(s, 2 + RELEASE_WINDOWS.good + 0.001);
     expect(s.events.map((e) => e.judgement)).toEqual(['perfect', 'rgood']);
     expect(s.holds[0]).toBeNull();
     release(s, 0, 2.5); // nothing left to release

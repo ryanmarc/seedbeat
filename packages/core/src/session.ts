@@ -5,6 +5,7 @@ import {
   HEALTH,
   MISS_GRACE,
   SCORE,
+  RELEASE_WINDOWS,
   WINDOWS,
   gradeFor,
   isBreak,
@@ -228,11 +229,11 @@ export function update(s: SessionState, t: number): void {
   }
   for (let lane = 0; lane < 4; lane++) {
     const h = s.holds[lane];
-    if (h && t > h.end + WINDOWS.good) {
+    if (h && t > h.end + RELEASE_WINDOWS.good) {
       s.holds[lane] = null;
       h.holding = false;
       h.done = true;
-      register(s, 'rgood', lane, -WINDOWS.good, t);
+      register(s, 'rgood', lane, -RELEASE_WINDOWS.good, t);
       if (s.ended) return;
     }
   }
