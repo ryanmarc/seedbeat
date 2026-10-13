@@ -112,7 +112,7 @@ async function measure(
   throttle: number,
 ): Promise<Result> {
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle });
-  await page.goto(`${BASE}/#s=${seed}&m=${mood}&d=2&bot=1&audio=0&auto=1&touch=1`);
+  await page.goto(`${BASE}/#s=${seed}&m=${mood}&d=2&bot=1&audio=0&auto=1&touch=1&lock=1`);
   await page.waitForFunction(() => window.__seedbeatPerf?.ready === true, null, { timeout: 20000 });
   if (!gpuLogged) {
     gpuLogged = true;

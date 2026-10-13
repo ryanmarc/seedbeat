@@ -42,6 +42,8 @@ interface HashConfig {
   reducedMotion: boolean;
   /** Diagnostics only: skip scene update and render (logic-only heap experiments). */
   noDraw: boolean;
+  /** Perf harness: lock the quality tier so the measurement is steady state. */
+  lockTier: boolean;
 }
 
 function readHash(): HashConfig {
@@ -60,6 +62,7 @@ function readHash(): HashConfig {
     touch: p.get('touch') === '1' || matchMedia('(pointer: coarse)').matches,
     reducedMotion: p.get('rm') === '1' || matchMedia('(prefers-reduced-motion: reduce)').matches,
     noDraw: p.get('nodraw') === '1',
+    lockTier: p.get('lock') === '1',
   };
 }
 
@@ -193,6 +196,7 @@ async function startRun(cfg: HashConfig): Promise<void> {
     },
     0,
   );
+  if (cfg.lockTier) loop.quality.state.locked = true;
   window.addEventListener('resize', () => {
     sceneRef = stage.rebuild();
   });
