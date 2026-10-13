@@ -21,7 +21,8 @@
     "typecheck": "tsc -b",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "cap:sync": "node -e \"console.log('cap:sync is a stub: native shells are deferred until the web build is complete (see README).')\""
+    "cap:sync": "node -e \"console.log('cap:sync is a stub: native shells are deferred until the web build is complete (see README).')\"",
+    "dev:phone": "pnpm --filter @seedbeat/game dev:phone"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -71,3 +71,8 @@ export function randomSeed(): string {
 }
 
 export const SCALE_NAMES = Object.keys(SCALES) as ScaleName[];
+
+/** Preview starts at `fromBar`: the transport wants the context time of bar 0, so shift back. */
+export function previewStartTime(now: number, barDur: number, fromBar: number, lead = 0.1): number {
+  return now + lead - fromBar * barDur;
+}

@@ -29,7 +29,7 @@ import type { Scene } from '../render/scene';
 import { TIERS } from '../render/quality';
 import { SaveStore, MemoryKV } from '../save/store';
 import { songKey, starsFor, type Settings } from '../save/schema';
-import { sectionText } from './format';
+import { previewStartTime, sectionText } from './format';
 import {
   audioReady,
   countdown,
@@ -45,6 +45,7 @@ import {
   screen,
   selection,
   settings as settingsSignal,
+  showToast,
   type Screen,
   type Selection,
 } from './state';
@@ -320,6 +321,22 @@ export class GameController {
     return t;
   }
 
+  /** Create the transport, or explain why audio cannot start (insecure page, no worklet). */
+  private async transportOrToast(): Promise<Transport | null> {
+    try {
+      return await this.ensureTransport();
+    } catch (err) {
+      const insecure = typeof window !== 'undefined' && !window.isSecureContext;
+      showToast(
+        insecure
+          ? 'Sound needs a secure page: open the game over https or on localhost (pnpm dev:phone for phones).'
+          : `Audio could not start: ${err instanceof Error ? err.message : String(err)}`,
+        5000,
+      );
+      return null;
+    }
+  }
+
   applyVolumes(): void {
     const s = this.settings;
     this.transport?.setVolumes({
@@ -339,17 +356,21 @@ export class GameController {
       listening.value = false;
       return;
     }
-    const t = await this.ensureTransport();
+    const t = await this.transportOrToast();
+    if (!t) return;
     const sel = selection.value;
+    const song = this.idleSong ?? makeSong(sel.seed, sel.mood, sel.mode);
+    const from = 4;
+    const start = previewStartTime(t.now(), song.barDur, from);
     t.start({
       seed: sel.seed,
       mood: sel.mood,
       mode: sel.mode,
-      startTime: t.now() + 0.1,
+      startTime: start,
       countIn: false,
-      fromBar: 4,
+      fromBar: from,
     });
-    t.clock.startSong(t.now() + 0.1 - 4 * (this.idleSong?.barDur ?? 2));
+    t.clock.startSong(start);
     listening.value = true;
     this.unlisten = t.onEnded(() => void this.listen(false));
   }
@@ -358,7 +379,8 @@ export class GameController {
   async startRun(): Promise<void> {
     await this.listen(false);
     const stage = await this.ensureStage();
-    const t = await this.ensureTransport();
+    const t = await this.transportOrToast();
+    if (!t) return;
     const sel = selection.value;
     const s = this.settings;
     const song = makeSong(sel.seed, sel.mood, sel.mode);
