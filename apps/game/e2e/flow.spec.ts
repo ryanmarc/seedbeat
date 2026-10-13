@@ -180,6 +180,11 @@ test.describe('game flow', () => {
     await page.getByRole('button', { name: 'PLAY' }).click();
     await waitScreen(page, 'playing');
     await noOverflow(page);
+    await page.keyboard.press('Escape');
+    await waitScreen(page, 'paused');
+    await noOverflow(page);
+    await page.keyboard.press('Escape');
+    await waitScreen(page, 'playing');
     await waitScreen(page, 'results', 40_000);
     await noOverflow(page);
   });

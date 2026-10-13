@@ -55,6 +55,8 @@ export async function resultCard(
     80,
     740,
   );
+  x.fillStyle = accent2;
+  x.fillRect(80, 780, 920, 6);
   const rows: [string, string][] = [
     ['SCORE', r.summary.score.toLocaleString()],
     ['ACCURACY', `${(r.summary.accuracy * 100).toFixed(1)}%`],
@@ -74,8 +76,6 @@ export async function resultCard(
     x.fillText(v, 80, y + 64);
     y += 120;
   }
-  x.fillStyle = accent2;
-  x.fillRect(80, 1270, 920, 6);
   return new Promise((resolve, reject) =>
     c.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png'),
   );
