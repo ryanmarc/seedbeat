@@ -72,7 +72,8 @@ test.describe('game flow', () => {
     await waitScreen(page, 'paused');
     await page.getByRole('button', { name: 'Settings' }).click();
     await waitScreen(page, 'settings');
-    await page.getByRole('button', { name: 'DONE' }).click();
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    await page.keyboard.press('Escape'); // overlays close on Escape; returns to the pause screen
     await waitScreen(page, 'paused');
     await page.getByRole('button', { name: 'RESUME' }).click();
     await waitScreen(page, 'playing');
