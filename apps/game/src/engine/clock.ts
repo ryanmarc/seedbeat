@@ -121,3 +121,20 @@ export class GameClock {
 export function eventMs(timeStamp: number, nowMs: number): number {
   return timeStamp > 0 && timeStamp <= nowMs + 2 && nowMs - timeStamp < 300 ? timeStamp : nowMs;
 }
+
+/** Adapt a real AudioContext to the clock's source interface (state narrowed, latency defaulted). */
+export function audioSourceFromContext(ctx: AudioContext): AudioTimeSource {
+  const c = ctx as AudioContext & { outputLatency?: number };
+  return {
+    get state() {
+      return ctx.state === 'running' ? 'running' : ctx.state === 'closed' ? 'closed' : 'suspended';
+    },
+    get currentTime() {
+      return ctx.currentTime;
+    },
+    get outputLatency() {
+      return c.outputLatency || ctx.baseLatency || 0;
+    },
+    getOutputTimestamp: ctx.getOutputTimestamp ? () => ctx.getOutputTimestamp() : undefined,
+  } as AudioTimeSource;
+}

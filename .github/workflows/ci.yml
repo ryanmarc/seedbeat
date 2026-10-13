@@ -11,9 +11,9 @@ concurrency:
 
 jobs:
   check:
-    name: typecheck · lint · test · golden · build · size
+    name: typecheck · lint · test · golden · build · size · perf
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
 
@@ -35,3 +35,6 @@ jobs:
       - run: pnpm build
       - name: Initial JS size vs budget
         run: pnpm size
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Perf harness (software renderer thresholds)
+        run: PERF_SECONDS=15 node tools/perf/run.ts

@@ -17,7 +17,7 @@
     "test:golden": "vitest run --project golden",
     "test:audio": "vitest run --project audio",
     "test:e2e": "pnpm --filter @seedbeat/game test:e2e",
-    "perf": "node tools/perf/run.ts",
+    "perf": "pnpm --filter @seedbeat/game build && node tools/perf/run.ts",
     "typecheck": "tsc -b",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",

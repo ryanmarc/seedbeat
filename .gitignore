@@ -17,6 +17,7 @@ build/
 # Test and tooling output
 coverage/
 test-results/
+apps/game/e2e/screenshots/
 playwright-report/
 blob-report/
 playwright/.cache/
