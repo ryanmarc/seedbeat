@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeLayout, depthScale, laneCenterX, project } from './layout';
+import { FAR_WIDTH, computeLayout, depthScale, laneCenterX, project } from './layout';
 import { paletteFor, mix } from './palette';
 import { QualityController, TIERS } from './quality';
 
@@ -32,6 +32,27 @@ describe('layout', () => {
     expect(l.nearW).toBeLessThanOrEqual(390 - 24);
     expect(l.pads).toHaveLength(4);
     expect(l.pads[3]!.x + l.pads[3]!.w).toBeCloseTo(390 - 10, 9);
+  });
+});
+
+describe('combo counter placement', () => {
+  const cases = [
+    { width: 360, height: 780, touch: true, safeAreaBottom: 0 },
+    { width: 412, height: 915, touch: true, safeAreaBottom: 24 },
+    { width: 1200, height: 800, touch: false, safeAreaBottom: 0 },
+  ];
+  it.each(cases)('stays in the gutter beside the highway and on screen (%o)', (v) => {
+    const l = computeLayout(v);
+    const half = (l.nearW * (FAR_WIDTH + (1 - FAR_WIDTH) * 0.22)) / 2;
+    const edge = l.cx + half;
+    expect(l.comboX).toBeLessThanOrEqual(l.width - 12);
+    expect(l.comboX - l.comboMaxW).toBeGreaterThan(edge);
+    expect(l.comboY).toBeGreaterThan(l.horizonY);
+    expect(l.comboY).toBeLessThan(l.popY - 40);
+    // Three digits at the font size the scene picks (≤ 0.8 em each) fit the gutter.
+    const size = Math.max(22, Math.min(56, l.width * 0.12, l.comboMaxW / 2.4));
+    expect(size * 0.8 * 3).toBeLessThanOrEqual(l.comboMaxW + 1);
+    expect(size).toBeGreaterThanOrEqual(30);
   });
 });
 

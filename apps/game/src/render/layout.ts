@@ -40,8 +40,16 @@ export interface Layout {
   padTop: number;
   padBot: number;
   pads: Pad[];
-  /** Y of the combo counter. */
+  /**
+   * Combo counter: baseline y and right edge x, in the gutter beside the highway so it never
+   * covers the lanes (pinned to the screen edge on phones, beside the track on wide screens).
+   */
   comboY: number;
+  comboX: number;
+  /** Horizontal room for the counter between the highway edge and `comboX`. */
+  comboMaxW: number;
+  /** Centre y of the judgement word (above the hit line, over the track). */
+  popY: number;
 }
 
 export interface Projected {
@@ -123,10 +131,19 @@ export function computeLayout(v: ViewportInfo): Layout {
     padTop,
     padBot,
     pads,
-    comboY: horizonY + (hitY - horizonY) * 0.42,
+    comboY: 0,
+    comboX: 0,
+    comboMaxW: 0,
+    popY: horizonY + (hitY - horizonY) * 0.42 + 56,
   };
   project(l, 1, top);
   l.topY = top.y;
   l.topW = top.w;
+  // Combo: a fifth of the way down the highway, where the gutter is still wide.
+  const sC = 0.22;
+  l.comboY = horizonY + (hitY - horizonY) * sC;
+  const gutterX = l.cx + (nearW * (FAR_WIDTH + (1 - FAR_WIDTH) * sC)) / 2 + 14;
+  l.comboX = Math.min(W - 12, gutterX + 150);
+  l.comboMaxW = l.comboX - gutterX;
   return l;
 }

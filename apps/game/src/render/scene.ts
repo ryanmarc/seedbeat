@@ -391,29 +391,31 @@ export class Scene {
     this.root.addChild(pc);
 
     // ---- text
+    // Sized so three digits fit the gutter beside the highway (Rubik Mono One is ~0.8 em wide).
+    const comboSize = Math.round(Math.max(22, Math.min(56, l.width * 0.12, l.comboMaxW / 2.4)));
     this.combo = new BitmapText({
       text: '',
-      style: { fontFamily: DISPLAY_FONT, fontSize: Math.round(Math.min(56, l.width * 0.12)) },
+      style: { fontFamily: DISPLAY_FONT, fontSize: comboSize },
     });
-    this.combo.anchor.set(0.5, 1);
-    this.combo.position.set(l.cx, l.comboY);
+    this.combo.anchor.set(1, 1);
+    this.combo.position.set(l.comboX, l.comboY);
     this.combo.alpha = 0.85;
     this.comboLabel = new BitmapText({
       text: 'C O M B O',
       style: { fontFamily: DATA_FONT, fontSize: 11 },
     });
-    this.comboLabel.anchor.set(0.5, 0);
-    this.comboLabel.position.set(l.cx, l.comboY + 6);
+    this.comboLabel.anchor.set(1, 0);
+    this.comboLabel.position.set(l.comboX, l.comboY + 6);
     this.comboLabel.tint = o.palette.accent2;
     this.comboLabel.visible = false;
     const popSize =
       o.judgementTextSize === 'small' ? 16 : o.judgementTextSize === 'large' ? 30 : 22;
     this.pop = new BitmapText({ text: '', style: { fontFamily: DISPLAY_FONT, fontSize: popSize } });
     this.pop.anchor.set(0.5);
-    this.pop.position.set(l.cx, l.comboY + 56);
+    this.pop.position.set(l.cx, l.popY);
     this.popSub = new BitmapText({ text: '', style: { fontFamily: DATA_FONT, fontSize: 12 } });
     this.popSub.anchor.set(0.5);
-    this.popSub.position.set(l.cx, l.comboY + 76);
+    this.popSub.position.set(l.cx, l.popY + 20);
     this.popSub.alpha = 0.7;
     this.countdown = new BitmapText({
       text: '',
@@ -432,7 +434,7 @@ export class Scene {
     this.endBanner.visible = false;
     this.ring = new Sprite(kit.ring);
     this.ring.anchor.set(0.5);
-    this.ring.position.set(l.cx, l.comboY - 20);
+    this.ring.position.set(l.comboX - comboSize * 1.1, l.comboY - comboSize * 0.4);
     this.ring.tint = o.palette.accent;
     this.ring.visible = false;
     this.root.addChild(this.ring);
