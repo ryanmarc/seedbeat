@@ -48,6 +48,7 @@ import { HIGHWAY_LIST, NOTE_SKIN_LIST, levelFor, unlocked, xpFromScore } from '.
 import {
   audioReady,
   countdown,
+  firstSongHint,
   hudAcc,
   hudHealth,
   hudProgress,
@@ -540,7 +541,7 @@ export class GameController {
     void this.ensureIdle();
   }
 
-  /** The first Play on a fresh save runs the tutorial (PRD §3); harness runs skip it. */
+  /** A fresh save is offered the lesson on the title screen (PRD §3); harness runs skip it. */
   needsTutorial(): boolean {
     return !this.store.save.profile.tutorialDone && (!this.harness.test || this.harness.tutorial);
   }
@@ -549,12 +550,27 @@ export class GameController {
     return this.startRun(true);
   }
 
+  /** "I know rhythm games": never offer the lesson again and go pick a song. */
+  declineTutorial(): void {
+    this.store.update((s) => {
+      s.profile.tutorialDone = true;
+    });
+    this.toFirstSong();
+  }
+
+  /** Leave the lesson early (HUD or pause). */
   skipTutorial(): void {
     if (this.current?.kind !== 'tutorial') return;
     this.store.update((s) => {
       s.profile.tutorialDone = true;
     });
     this.teardownRun();
+    this.toFirstSong();
+  }
+
+  /** Song select with the one-time seed hint. */
+  toFirstSong(): void {
+    firstSongHint.value = true;
     screen.value = 'select';
     void this.ensureIdle();
   }
@@ -740,6 +756,7 @@ export class GameController {
     hudTutorial.value = kind === 'tutorial';
     countdown.value = 0;
     pauseReason.value = 'user';
+    firstSongHint.value = false;
     screen.value = 'playing';
     void this.wakeLock.hold();
     if (kind !== 'tutorial') this.store.addRecent(sel.seed);

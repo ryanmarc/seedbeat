@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { controller } from '../app/controller';
-import { screen, showToast } from '../app/state';
+import { save, screen, showToast } from '../app/state';
 import { installable, iosInstallHint, promptInstall } from '../platform/install';
 
 export function TitleScreen() {
@@ -13,6 +13,8 @@ export function TitleScreen() {
     if (r === 'accepted') showToast('Installed. Seedbeat is on your home screen.');
   };
   const iosHint = iosInstallHint();
+  // Reading the save signal re-renders the card away once the lesson is done or declined.
+  const offerLesson = !save.value.profile.tutorialDone && controller.needsTutorial();
   const go = (fn: () => void): void => {
     controller.warmAudio();
     fn();
@@ -29,6 +31,30 @@ export function TitleScreen() {
             is a note you hear.
           </p>
         </header>
+        {offerLesson && (
+          <section class="welcome" aria-labelledby="welcome-h2">
+            <h2 id="welcome-h2">New here?</h2>
+            <p class="lede">
+              A one-minute lesson covers taps, chords and holds, then plays you a short song.
+            </p>
+            <div class="menurow">
+              <button
+                type="button"
+                class="btn primary"
+                onClick={() => go(() => void controller.startTutorial())}
+              >
+                START THE LESSON
+              </button>
+              <button
+                type="button"
+                class="btn"
+                onClick={() => go(() => controller.declineTutorial())}
+              >
+                Skip, I know rhythm games
+              </button>
+            </div>
+          </section>
+        )}
         <div class="menurow">
           <button
             type="button"

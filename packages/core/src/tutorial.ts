@@ -70,7 +70,10 @@ export function tutorialChart(song: Song): TutorialChart {
   return {
     notes,
     prompts: [
-      { bar: 0, text: 'Notes fall toward the line. Tap the lane when one reaches it.' },
+      {
+        bar: 0,
+        text: 'Notes fall toward the line. Tap the lane (its pad or key) when one reaches it.',
+      },
       { bar: 5, text: 'Chords: two notes arrive together. Tap both lanes at once.' },
       {
         bar: 10,

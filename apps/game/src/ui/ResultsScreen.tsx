@@ -18,7 +18,7 @@ export function ResultsScreen() {
       : kind === 'practice'
         ? `Practice · ${r.loops ?? 0} loop${r.loops === 1 ? '' : 's'} · ${Math.round((r.selection.practice?.rate ?? 1) * 100)}% tempo · not scored`
         : kind === 'tutorial'
-          ? 'Tutorial complete'
+          ? 'Tutorial complete. You know taps, chords and holds.'
           : s.failed
             ? 'Failed'
             : kind === 'daily'
@@ -102,8 +102,8 @@ export function ResultsScreen() {
       <Histogram events={r.events} />
       <div class="btnrow">
         {kind === 'tutorial' ? (
-          <button type="button" class="btn primary" onClick={toMenu}>
-            CONTINUE
+          <button type="button" class="btn primary" onClick={() => controller.toFirstSong()}>
+            PICK A SONG
           </button>
         ) : (
           <button type="button" class="btn primary" onClick={() => void controller.startRun()}>

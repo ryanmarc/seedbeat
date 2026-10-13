@@ -86,3 +86,21 @@ describe('platform defaults', () => {
     ).toBe('low');
   });
 });
+
+describe('reset and import keep device defaults', () => {
+  it('a reset save on a touch device persists the balanced audio buffer', async () => {
+    const kv = new MemoryKV();
+    const store = new SaveStore(kv);
+    await store.load();
+    store.setSettings({ audioBuffer: 'stable' });
+    store.reset();
+    const expected = platformDefaults().audioBuffer;
+    expect(store.save.settings.audioBuffer).toBe(expected);
+    const again = new SaveStore(kv);
+    await again.load();
+    expect(again.save.settings.audioBuffer).toBe(expected);
+    store.importJSON(JSON.stringify({ v: 1, settings: { noteSpeed: 1.5 } }));
+    expect(store.save.settings.audioBuffer).toBe(expected);
+    expect(store.save.settings.noteSpeed).toBe(1.5);
+  });
+});

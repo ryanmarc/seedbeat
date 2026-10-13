@@ -408,6 +408,26 @@ kbd {
 .menurow .btn {
   flex: 1 1 120px;
 }
+/* First-run lesson offer on the title screen. */
+.welcome {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--chip);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.welcome h2 {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 17px;
+}
+/* The lesson button spans the row so its label never wraps; Skip sits under it. */
+.welcome .menurow .btn {
+  flex-basis: 100%;
+}
 
 /* HUD */
 #hud {

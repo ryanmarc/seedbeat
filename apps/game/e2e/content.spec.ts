@@ -113,39 +113,64 @@ test.describe('game content', () => {
     await expect(page.getByText(/Practice · 1 loop · 100% tempo/)).toBeVisible();
   });
 
-  test('tutorial runs on the first play, can be skipped, then never again', async ({ page }) => {
+  test('first run offers the lesson on the title; it can be skipped from pause, then never again', async ({
+    page,
+  }) => {
     await page.goto(`/#${HARNESS}&tutorial=1`);
     await waitScreen(page, 'title');
-    await page.getByRole('button', { name: 'PLAY' }).click();
-    await waitScreen(page, 'select');
-    await page.getByRole('button', { name: 'PLAY' }).click();
+    const offer = page.getByRole('region', { name: 'New here?' });
+    await expect(offer).toBeVisible();
+    await offer.getByRole('button', { name: 'START THE LESSON' }).click();
     await waitScreen(page, 'playing');
     await expect(page.getByText(/Notes fall toward the line/)).toBeVisible();
     await page.keyboard.press('Escape');
     await waitScreen(page, 'paused');
     await page.locator('#pause').getByRole('button', { name: 'Skip tutorial' }).click();
     await waitScreen(page, 'select');
+    await expect(page.getByText(/Your first song: pick a mood/)).toBeVisible();
+    // Play plays what the player set up, with no lesson in the way.
     await page.getByRole('button', { name: 'PLAY' }).click();
     await waitScreen(page, 'playing');
     await expect(page.getByText(/Notes fall toward the line/)).toHaveCount(0);
     await waitScreen(page, 'results', 40_000);
     await expect(page.getByText(/^Cleared · /)).toBeVisible();
+    await page.getByRole('button', { name: 'Menu' }).click();
+    await waitScreen(page, 'select');
+    await expect(page.getByText(/Your first song: pick a mood/)).toHaveCount(0);
   });
 
-  test('tutorial completes to results and is replayable from settings', async ({ page }) => {
+  test('declining the lesson goes straight to song select and never asks again', async ({
+    page,
+  }) => {
     await page.goto(`/#${HARNESS}&tutorial=1`);
     await waitScreen(page, 'title');
-    await page.getByRole('button', { name: 'PLAY' }).click();
+    await page.getByRole('button', { name: 'Skip, I know rhythm games' }).click();
     await waitScreen(page, 'select');
+    await expect(page.getByText(/Your first song: pick a mood/)).toBeVisible();
     await page.getByRole('button', { name: 'PLAY' }).click();
+    await waitScreen(page, 'playing');
+    await expect(page.getByText(/Notes fall toward the line/)).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await waitScreen(page, 'paused');
+    await page.getByRole('button', { name: 'Quit to menu' }).click();
+    await waitScreen(page, 'select');
+  });
+
+  test('the lesson completes to results, leads to song select, and is replayable from settings', async ({
+    page,
+  }) => {
+    await page.goto(`/#${HARNESS}&tutorial=1`);
+    await waitScreen(page, 'title');
+    await page.getByRole('button', { name: 'START THE LESSON' }).click();
     await waitScreen(page, 'playing');
     await waitScreen(page, 'results', 40_000);
     await expect(page.getByText(/Tutorial complete/)).toBeVisible();
     await expect(
       page.getByRole('list', { name: 'Achievements earned' }).getByText('First steps'),
     ).toBeVisible();
-    await page.getByRole('button', { name: 'CONTINUE' }).click();
+    await page.getByRole('button', { name: 'PICK A SONG' }).click();
     await waitScreen(page, 'select');
+    await expect(page.getByText(/Your first song: pick a mood/)).toBeVisible();
     await page.getByRole('button', { name: 'Settings' }).click();
     await waitScreen(page, 'settings');
     await page.getByRole('button', { name: 'Replay tutorial' }).click();

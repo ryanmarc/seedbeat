@@ -83,6 +83,8 @@ export const countdown = signal(0);
 export type PauseReason = 'user' | 'background' | 'audio';
 export const pauseReason = signal<PauseReason>('user');
 export const audioReady = signal(false);
+/** Song select shows the seed hint once, right after the lesson (or after skipping it). */
+export const firstSongHint = signal(false);
 export const toast = signal<string | null>(null);
 
 export const hudScore = signal(0);

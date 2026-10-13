@@ -13,7 +13,7 @@ import {
 import { controller } from '../app/controller';
 import { currentStreak, isDaily } from '../app/daily';
 import { DIFF_LABEL, MOOD_LABEL, randomSeed, sectionChoices, songMeta } from '../app/format';
-import { listening, save, selection, type Selection } from '../app/state';
+import { listening, save, selection, type Selection, firstSongHint } from '../app/state';
 import { songKey } from '../save/schema';
 import { Segmented } from './components';
 
@@ -58,10 +58,7 @@ export function SelectScreen() {
       void controller.ensureIdle();
     }
   };
-  const play = (): void => {
-    if (controller.needsTutorial()) void controller.startTutorial();
-    else void controller.startRun();
-  };
+  const play = (): void => void controller.startRun();
   return (
     <section class="screen" id="select" aria-labelledby="select-title">
       <div class="panel">
@@ -69,7 +66,11 @@ export function SelectScreen() {
           <h1 id="select-title" ref={h} tabIndex={-1}>
             SEEDBEAT
           </h1>
-          <p class="lede">Pick a mood, type a seed, play the song it makes.</p>
+          <p class="lede">
+            {firstSongHint.value
+              ? 'Your first song: pick a mood and type any word as the seed. The same seed always makes the same song, so share the good ones.'
+              : 'Pick a mood, type a seed, play the song it makes.'}
+          </p>
         </header>
         <fieldset>
           <legend>Mood</legend>

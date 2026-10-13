@@ -45,7 +45,7 @@ export class SaveStore {
     try {
       this.data = migrate(await this.kv.get(KEY), platformDefaults());
     } catch {
-      this.data = defaultSave();
+      this.data = migrate(null, platformDefaults()); // unreadable save: fresh, with device defaults
     }
     this.emit();
     return this.data;
@@ -118,10 +118,11 @@ export class SaveStore {
   /** Replace the save with imported JSON (migrated). Throws on invalid JSON. */
   importJSON(json: string): void {
     const parsed = JSON.parse(json) as unknown;
-    this.update((s) => Object.assign(s, migrate(parsed)));
+    this.update((s) => Object.assign(s, migrate(parsed, platformDefaults())));
   }
 
+  /** Fresh save with this device's defaults (so a reset on a phone keeps the 20 ms audio buffer). */
   reset(): void {
-    this.update((s) => Object.assign(s, defaultSave()));
+    this.update((s) => Object.assign(s, migrate(null, platformDefaults())));
   }
 }
