@@ -90,7 +90,8 @@ export interface SceneFrame {
   perf: number;
   approach: number;
   session: SessionState;
-  playing: boolean;
+  /** Paused: effects freeze. Ended runs keep animating until M5's results screen takes over. */
+  paused: boolean;
 }
 
 const POP_TEXT: Record<Judgement, string> = {
@@ -142,6 +143,8 @@ export class Scene {
   private readonly pop: BitmapText;
   private readonly popSub: BitmapText;
   private readonly countdown: BitmapText;
+  private readonly endBanner: BitmapText;
+  private endShown = false;
   private readonly flashAt = [-9, -9, -9, -9];
   private readonly wasPressed = [false, false, false, false];
   private lastEvent = 0;
@@ -381,7 +384,21 @@ export class Scene {
     this.countdown.position.set(l.cx, l.horizonY + (l.hitY - l.horizonY) * 0.45);
     this.countdown.alpha = 0.9;
     this.countdown.visible = false;
-    this.root.addChild(this.combo, this.comboLabel, this.pop, this.popSub, this.countdown);
+    this.endBanner = new BitmapText({
+      text: '',
+      style: { fontFamily: DISPLAY_FONT, fontSize: Math.round(Math.min(48, l.width * 0.11)) },
+    });
+    this.endBanner.anchor.set(0.5);
+    this.endBanner.position.set(l.cx, l.horizonY + (l.hitY - l.horizonY) * 0.3);
+    this.endBanner.visible = false;
+    this.root.addChild(
+      this.combo,
+      this.comboLabel,
+      this.pop,
+      this.popSub,
+      this.countdown,
+      this.endBanner,
+    );
   }
 
   destroy(): void {
@@ -623,7 +640,7 @@ export class Scene {
       if (this.labels[labelIdx]!.visible) this.labels[labelIdx]!.visible = false;
 
     // ---- particles
-    const step = f.playing ? dt : 0;
+    const step = f.paused ? 0 : dt;
     for (let i = 0; i < this.pCount; i++) {
       this.pLife[i]! -= step;
       if (this.pLife[i]! <= 0) {
@@ -667,8 +684,16 @@ export class Scene {
       this.pop.visible = this.popSub.visible = false;
     }
 
+    // ---- end of run (until the results screen exists)
+    if (s.ended && !this.endShown) {
+      this.endShown = true;
+      this.endBanner.text = s.failed ? 'FAILED' : 'COMPLETE';
+      this.endBanner.tint = s.failed ? CHROME.bad : pal.accent2;
+      this.endBanner.visible = true;
+    }
+
     // ---- count-in
-    const cd = t < 0 && f.playing ? Math.ceil(-t / beat) : 0;
+    const cd = t < 0 && !f.paused && !s.ended ? Math.ceil(-t / beat) : 0;
     const show = cd > 0 && cd <= 4 ? cd : 0;
     if (show !== this.lastCountdown) {
       this.lastCountdown = show;

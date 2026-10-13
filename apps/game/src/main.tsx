@@ -1,6 +1,6 @@
 /**
  * Bootstrap for the play field (M4). M5 replaces this with the real screens; until then the hash
- * configures a run: #s=seed&m=mood&d=0-3&mode=song|endless&bot=1&audio=0&auto=1&diag=1&touch=1
+ * configures a run: #s=seed&m=mood&d=0-3&mode=song|endless&bot=1&audio=0&auto=1&diag=1&touch=1&nofail=1&lock=1
  * The perf harness and screenshot tests use the bot with audio=0 (performance-clock audio source).
  */
 import { render } from 'preact';
@@ -44,6 +44,7 @@ interface HashConfig {
   noDraw: boolean;
   /** Perf harness: lock the quality tier so the measurement is steady state. */
   lockTier: boolean;
+  noFail: boolean;
 }
 
 function readHash(): HashConfig {
@@ -63,6 +64,7 @@ function readHash(): HashConfig {
     reducedMotion: p.get('rm') === '1' || matchMedia('(prefers-reduced-motion: reduce)').matches,
     noDraw: p.get('nodraw') === '1',
     lockTier: p.get('lock') === '1',
+    noFail: p.get('nofail') === '1',
   };
 }
 
@@ -122,7 +124,7 @@ async function startRun(cfg: HashConfig): Promise<void> {
       difficulty: cfg.difficulty,
       generatorVersion: CURRENT_GENERATOR_VERSION,
       speed: 1,
-      noFail: cfg.bot,
+      noFail: cfg.bot || cfg.noFail,
       ...(endTime !== undefined ? { endTime } : {}),
       bars,
     },
@@ -162,7 +164,7 @@ async function startRun(cfg: HashConfig): Promise<void> {
           perf: now / 1000,
           approach,
           session: run.session,
-          playing: !run.session.ended,
+          paused: false,
         });
         stage.render();
         if (diag.visible && now - lastDiag > 500) {
@@ -238,7 +240,9 @@ function PlayOverlay({ cfg, onPlay }: { cfg: HashConfig; onPlay: () => void }) {
         >
           Play
         </button>
-        <p style={{ color: '#a39cbd', fontSize: 12 }}>D F J K or arrows · F3 diagnostics</p>
+        <p style={{ color: '#a39cbd', fontSize: 12 }}>
+          D F J K or arrows · F3 diagnostics · add &amp;nofail=1 to the URL to practise
+        </p>
       </div>
     </main>
   );
