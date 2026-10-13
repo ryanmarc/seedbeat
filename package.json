@@ -1,0 +1,41 @@
+{
+  "name": "seedbeat",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Four-lane rhythm game that composes a song and its chart from a text seed.",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@11.1.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @seedbeat/game dev",
+    "build": "pnpm --filter @seedbeat/game build",
+    "size": "node tools/size/check.ts",
+    "test": "vitest run --project unit",
+    "test:golden": "vitest run --project golden",
+    "test:audio": "vitest run --project audio",
+    "test:e2e": "pnpm --filter @seedbeat/game test:e2e",
+    "perf": "node tools/perf/run.ts",
+    "typecheck": "tsc -b",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "cap:sync": "node -e \"console.log('cap:sync is a stub: native shells are deferred until the web build is complete (see README).')\""
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.0",
+    "@types/audioworklet": "0.0.100",
+    "@types/node": "24.19.2",
+    "eslint": "10.12.0",
+    "eslint-config-prettier": "10.1.8",
+    "fast-check": "4.10.2",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.4"
+  }
+}

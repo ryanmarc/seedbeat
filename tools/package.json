@@ -1,0 +1,10 @@
+{
+  "name": "@seedbeat/tools",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Repo tooling: golden fixture comparison, bundle size check, perf harness.",
+  "dependencies": {
+    "@seedbeat/core": "workspace:*"
+  }
+}

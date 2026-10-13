@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist-types",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "allowImportingTsExtensions": true
+  },
+  "include": ["golden/**/*.ts", "size/**/*.ts", "perf/**/*.ts"],
+  "references": [{ "path": "../packages/core" }]
+}

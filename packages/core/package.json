@@ -1,0 +1,11 @@
+{
+  "name": "@seedbeat/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure, deterministic song and chart generation, judgement and scoring. No DOM, no audio, no I/O.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "sideEffects": false
+}

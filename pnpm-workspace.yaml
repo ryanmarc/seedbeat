@@ -1,0 +1,8 @@
+packages:
+  - packages/*
+  - apps/*
+  - tools
+
+# Exact versions everywhere (ARCHITECTURE.md §1); refuse unsupported Node.
+savePrefix: ''
+engineStrict: true

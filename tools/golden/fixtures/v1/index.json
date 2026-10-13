@@ -1,0 +1,242 @@
+[
+ {
+  "file": "lofi-song-amber-11.json",
+  "mood": "lofi",
+  "mode": "song",
+  "seed": "amber-11",
+  "bpm": 71,
+  "name": "Paper Sunday",
+  "totalBars": 32,
+  "eventBars": 32,
+  "notes": {
+   "easy": 64,
+   "normal": 103,
+   "hard": 126
+  }
+ },
+ {
+  "file": "lofi-song-cobalt-42.json",
+  "mood": "lofi",
+  "mode": "song",
+  "seed": "cobalt-42",
+  "bpm": 81,
+  "name": "Velvet Streetlamp",
+  "totalBars": 40,
+  "eventBars": 0,
+  "notes": {
+   "easy": 86,
+   "normal": 121,
+   "hard": 208
+  }
+ },
+ {
+  "file": "lofi-song-orbit-73.json",
+  "mood": "lofi",
+  "mode": "song",
+  "seed": "orbit-73",
+  "bpm": 73,
+  "name": "Soft Window",
+  "totalBars": 32,
+  "eventBars": 0,
+  "notes": {
+   "easy": 58,
+   "normal": 87,
+   "hard": 131
+  }
+ },
+ {
+  "file": "lofi-endless-signal-90.json",
+  "mood": "lofi",
+  "mode": "endless",
+  "seed": "signal-90",
+  "bpm": 70,
+  "name": "Late Porch",
+  "totalBars": null,
+  "eventBars": 16,
+  "notes": {
+   "easy": 326,
+   "normal": 407,
+   "hard": 478
+  }
+ },
+ {
+  "file": "synthwave-song-amber-11.json",
+  "mood": "synthwave",
+  "mode": "song",
+  "seed": "amber-11",
+  "bpm": 102,
+  "name": "Vapor Skyline",
+  "totalBars": 48,
+  "eventBars": 48,
+  "notes": {
+   "easy": 86,
+   "normal": 163,
+   "hard": 263
+  }
+ },
+ {
+  "file": "synthwave-song-cobalt-42.json",
+  "mood": "synthwave",
+  "mode": "song",
+  "seed": "cobalt-42",
+  "bpm": 104,
+  "name": "Outrun Arcade",
+  "totalBars": 48,
+  "eventBars": 0,
+  "notes": {
+   "easy": 76,
+   "normal": 88,
+   "hard": 170
+  }
+ },
+ {
+  "file": "synthwave-song-orbit-73.json",
+  "mood": "synthwave",
+  "mode": "song",
+  "seed": "orbit-73",
+  "bpm": 104,
+  "name": "Midnight Mirage",
+  "totalBars": 48,
+  "eventBars": 0,
+  "notes": {
+   "easy": 88,
+   "normal": 121,
+   "hard": 167
+  }
+ },
+ {
+  "file": "synthwave-endless-signal-90.json",
+  "mood": "synthwave",
+  "mode": "endless",
+  "seed": "signal-90",
+  "bpm": 103,
+  "name": "Laser Palms",
+  "totalBars": null,
+  "eventBars": 16,
+  "notes": {
+   "easy": 333,
+   "normal": 469,
+   "hard": 505
+  }
+ },
+ {
+  "file": "chiptune-song-amber-11.json",
+  "mood": "chiptune",
+  "mode": "song",
+  "seed": "amber-11",
+  "bpm": 160,
+  "name": "Lucky Quest",
+  "totalBars": 56,
+  "eventBars": 56,
+  "notes": {
+   "easy": 111,
+   "normal": 166,
+   "hard": 284
+  }
+ },
+ {
+  "file": "chiptune-song-cobalt-42.json",
+  "mood": "chiptune",
+  "mode": "song",
+  "seed": "cobalt-42",
+  "bpm": 145,
+  "name": "Mega Castle",
+  "totalBars": 56,
+  "eventBars": 0,
+  "notes": {
+   "easy": 157,
+   "normal": 202,
+   "hard": 332
+  }
+ },
+ {
+  "file": "chiptune-song-orbit-73.json",
+  "mood": "chiptune",
+  "mode": "song",
+  "seed": "orbit-73",
+  "bpm": 143,
+  "name": "Cosmic Warp",
+  "totalBars": 56,
+  "eventBars": 0,
+  "notes": {
+   "easy": 154,
+   "normal": 213,
+   "hard": 305
+  }
+ },
+ {
+  "file": "chiptune-endless-signal-90.json",
+  "mood": "chiptune",
+  "mode": "endless",
+  "seed": "signal-90",
+  "bpm": 142,
+  "name": "Rocket Boss",
+  "totalBars": null,
+  "eventBars": 16,
+  "notes": {
+   "easy": 326,
+   "normal": 459,
+   "hard": 535
+  }
+ },
+ {
+  "file": "techno-song-amber-11.json",
+  "mood": "techno",
+  "mode": "song",
+  "seed": "amber-11",
+  "bpm": 127,
+  "name": "Steel Circuit",
+  "totalBars": 56,
+  "eventBars": 56,
+  "notes": {
+   "easy": 164,
+   "normal": 217,
+   "hard": 338
+  }
+ },
+ {
+  "file": "techno-song-cobalt-42.json",
+  "mood": "techno",
+  "mode": "song",
+  "seed": "cobalt-42",
+  "bpm": 125,
+  "name": "Hidden Machine",
+  "totalBars": 56,
+  "eventBars": 0,
+  "notes": {
+   "easy": 124,
+   "normal": 212,
+   "hard": 292
+  }
+ },
+ {
+  "file": "techno-song-orbit-73.json",
+  "mood": "techno",
+  "mode": "song",
+  "seed": "orbit-73",
+  "bpm": 129,
+  "name": "Cold Reactor",
+  "totalBars": 56,
+  "eventBars": 0,
+  "notes": {
+   "easy": 123,
+   "normal": 202,
+   "hard": 315
+  }
+ },
+ {
+  "file": "techno-endless-signal-90.json",
+  "mood": "techno",
+  "mode": "endless",
+  "seed": "signal-90",
+  "bpm": 130,
+  "name": "Black Machine",
+  "totalBars": null,
+  "eventBars": 16,
+  "notes": {
+   "easy": 373,
+   "normal": 541,
+   "hard": 593
+  }
+ }
+]

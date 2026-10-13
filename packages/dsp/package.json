@@ -1,0 +1,11 @@
+{
+  "name": "@seedbeat/dsp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure DSP building blocks (oscillators, filters, envelopes, voices, effects, meter). No Web Audio types, so it renders offline in Node.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "sideEffects": false
+}

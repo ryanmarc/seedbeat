@@ -1,0 +1,7 @@
+pnpm-lock.yaml
+tools/golden/fixtures/
+**/dist/
+**/dist-types/
+**/.vite/
+playwright-report/
+test-results/

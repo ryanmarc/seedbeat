@@ -1,0 +1,34 @@
+# Handoff kit and local tooling (not part of the product repo)
+CLAUDE.md
+KICKOFF.md
+docs/
+reference/
+.claude/
+.npmrc
+
+# Dependencies and build output
+node_modules/
+dist/
+dist-types/
+build/
+.turbo/
+*.tsbuildinfo
+
+# Test and tooling output
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Local tool state
+.env
+.env.*
+!.env.example
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
