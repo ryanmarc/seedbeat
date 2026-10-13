@@ -3,10 +3,17 @@
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "dist-types",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM"],
     "types": ["node"],
     "allowImportingTsExtensions": true
   },
-  "include": ["golden/**/*.ts", "size/**/*.ts", "perf/**/*.ts"],
-  "references": [{ "path": "../packages/core" }]
+  "include": ["golden/**/*.ts", "size/**/*.ts", "perf/**/*.ts", "timing/**/*.ts"],
+  "references": [
+    {
+      "path": "../packages/core"
+    },
+    {
+      "path": "../apps/game"
+    }
+  ]
 }

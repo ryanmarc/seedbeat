@@ -10,6 +10,7 @@ export default defineConfig({
             'packages/*/src/**/*.test.ts',
             'apps/game/src/**/*.test.ts',
             'tools/size/**/*.test.ts',
+            'tools/timing/**/*.test.ts',
           ],
         },
       },
