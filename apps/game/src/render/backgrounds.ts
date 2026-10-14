@@ -192,10 +192,14 @@ class SynthwaveBackground implements Background {
     const scroll = ((f.t * f.bpm) / 60) * 0.5;
     const frac = scroll - Math.floor(scroll);
     const alpha = 0.25 + f.pulse * 0.45 * f.intensity;
+    // Depth 1/z, rescaled so the farthest line (z = 27) sits on the horizon: the lines bunch into a
+    // glow that starts at the foot of the sun instead of a little below it.
+    const Z = 27;
+    const far = 1 / Z;
     for (let i = 0; i < 26; i++) {
       const z = i + 1 - frac;
       const s = this.lines[i]!;
-      const y = hy + ((H - hy) * 0.8) / z;
+      const y = hy + ((H - hy) * 0.8 * (1 / z - far)) / (1 - far);
       s.y = y;
       const hidden = z <= 0 || y > H;
       s.visible = !hidden;
