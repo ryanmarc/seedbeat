@@ -145,16 +145,19 @@ class SynthwaveBackground implements Background {
           const half = Math.sqrt(Math.max(0, R * R - (hy - y0 - R / 24) * (hy - y0 - R / 24)));
           g.rect(l.cx - half, y0, half * 2, R / 24 + 1).fill(col);
         }
+        // Cuts thicken toward the horizon but never fill their slot, so a band of sun always
+        // sits directly on the horizon glow.
+        const slot = (R * 0.55) / 7;
         for (let i = 0; i < 7; i++) {
-          const yy = hy - R * 0.55 + i * ((R * 0.55) / 7);
-          g.rect(l.cx - R, yy, R * 2, 1 + i * 1.4).fill(0x4a0f62);
+          const yy = hy - R * 0.55 + i * slot;
+          g.rect(l.cx - R, yy, R * 2, Math.min(1 + i * 1.4, slot - 4)).fill(0x4a0f62);
         }
         const n = sc.mount.length - 1;
         const pts: number[] = [0, hy];
         for (let i = 0; i <= n; i++)
           pts.push(
             (i / n) * W,
-            hy - sc.mount[i]! * hy * 0.28 * (Math.abs(i - n / 2) > 3 ? 1 : 0.25),
+            hy - sc.mount[i]! * hy * 0.28 * (Math.abs(i - n / 2) > 3 ? 1 : 0.08),
           );
         pts.push(W, hy);
         g.poly(pts).fill(0x1a0633);
