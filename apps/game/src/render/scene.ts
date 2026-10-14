@@ -45,8 +45,15 @@ const BEAT_LINES = 24;
 const PARTICLES = 160;
 const POP_SEC = 0.6;
 const CHORUS_FLASH_SEC = 0.35;
-/** Alpha of static highway lines at linear depth u (0 = far end, 1 = near): gone at the far end. */
-const farFade = (u: number): number => (u < 0.3 ? u / 0.3 : 1);
+/**
+ * Static highway lines and beams dissolve over the far 30% of the track: six short segments with
+ * rising alpha, then one solid segment to the near end. [u0, u1, alpha] in linear depth
+ * (0 = far end, 1 = near end). Seven draw instructions per line instead of one per fill step.
+ */
+const FADE_SEGMENTS: readonly (readonly [number, number, number])[] = [
+  ...Array.from({ length: 6 }, (_, i) => [i * 0.05, (i + 1) * 0.05, (i + 0.5) / 6] as const),
+  [0.3, 1, 1] as const,
+];
 const RING_SEC = 0.6;
 /** Combo milestones that earn a ring burst (RENDERING.md §3). */
 export const COMBO_MILESTONES = [50, 100, 200] as const;
@@ -221,10 +228,8 @@ export class Scene {
     // Lines along the highway dissolve over the far third, like the fill, so the track sinks
     // into the background instead of stopping on a hard edge at the spawn line.
     const strokeAlong = (e: number, color: number, alpha: number): void => {
-      for (let i = 0; i < steps; i++) {
-        const u0 = i / steps;
-        const u1 = (i + 1) / steps;
-        const a = alpha * farFade((u0 + u1) / 2);
+      for (const [u0, u1, k] of FADE_SEGMENTS) {
+        const a = alpha * k;
         if (a < 0.004) continue;
         hw.moveTo(
           laneEdgeX(l, l.topW + (l.bottomW - l.topW) * u0, e),
@@ -244,7 +249,7 @@ export class Scene {
         const q = project(l, i / 12, this.proj);
         hw.moveTo(l.cx - q.w / 2, q.y)
           .lineTo(l.cx + q.w / 2, q.y)
-          .stroke({ color: o.palette.accent2, alpha: 0.08 * farFade(q.s), width: 1 });
+          .stroke({ color: o.palette.accent2, alpha: 0.08 * Math.min(1, q.s / 0.3), width: 1 });
       }
     }
     for (const e of [0, 4]) strokeAlong(e, o.palette.accent, 0.55);
@@ -253,9 +258,7 @@ export class Scene {
     // ---- lane beams (stacked so they dissolve at the far end too)
     for (let lane = 0; lane < 4; lane++) {
       const g = new Graphics();
-      for (let i = 0; i < steps; i++) {
-        const u0 = i / steps;
-        const u1 = (i + 1) / steps;
+      for (const [u0, u1, k] of FADE_SEGMENTS) {
         const w0 = l.topW + (l.bottomW - l.topW) * u0;
         const w1 = l.topW + (l.bottomW - l.topW) * u1;
         const y0 = l.topY + (l.bottom - l.topY) * u0;
@@ -269,7 +272,7 @@ export class Scene {
           y1,
           laneEdgeX(l, w1, lane),
           y1,
-        ]).fill({ color: 0xffffff, alpha: farFade((u0 + u1) / 2) });
+        ]).fill({ color: 0xffffff, alpha: k });
       }
       g.tint = o.palette.lane[lane]!;
       g.alpha = 0;
