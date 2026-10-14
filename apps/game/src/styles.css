@@ -440,6 +440,23 @@ kbd {
   z-index: 5;
   contain: layout style;
 }
+/* Soft backing so the readouts stay legible over bright skies (the synthwave sun). */
+#hud::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(100% + 44px);
+  background: linear-gradient(
+    to bottom,
+    rgba(11, 9, 18, 0.9) 0%,
+    rgba(11, 9, 18, 0.72) 55%,
+    rgba(11, 9, 18, 0) 100%
+  );
+  z-index: -1;
+  pointer-events: none;
+}
 .hud-row {
   display: grid;
   grid-template-columns: 1fr minmax(0, 1.3fr) 1fr auto;

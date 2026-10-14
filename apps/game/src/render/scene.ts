@@ -45,6 +45,8 @@ const BEAT_LINES = 24;
 const PARTICLES = 160;
 const POP_SEC = 0.6;
 const CHORUS_FLASH_SEC = 0.35;
+/** Alpha of static highway lines at linear depth u (0 = far end, 1 = near): gone at the far end. */
+const farFade = (u: number): number => (u < 0.3 ? u / 0.3 : 1);
 const RING_SEC = 0.6;
 /** Combo milestones that earn a ring burst (RENDERING.md §3). */
 export const COMBO_MILESTONES = [50, 100, 200] as const;
@@ -216,39 +218,59 @@ export class Scene {
         y1 + 0.5,
       ]).fill({ color: 0x06040c, alpha: a });
     }
-    if (style !== 'minimal')
-      for (let e = 1; e < 4; e++)
-        hw.moveTo(laneEdgeX(l, l.topW, e), l.topY)
-          .lineTo(laneEdgeX(l, l.bottomW, e), l.bottom)
-          .stroke({ color: 0xffffff, alpha: 0.1, width: 1 });
+    // Lines along the highway dissolve over the far third, like the fill, so the track sinks
+    // into the background instead of stopping on a hard edge at the spawn line.
+    const strokeAlong = (e: number, color: number, alpha: number): void => {
+      for (let i = 0; i < steps; i++) {
+        const u0 = i / steps;
+        const u1 = (i + 1) / steps;
+        const a = alpha * farFade((u0 + u1) / 2);
+        if (a < 0.004) continue;
+        hw.moveTo(
+          laneEdgeX(l, l.topW + (l.bottomW - l.topW) * u0, e),
+          l.topY + (l.bottom - l.topY) * u0,
+        )
+          .lineTo(
+            laneEdgeX(l, l.topW + (l.bottomW - l.topW) * u1, e),
+            l.topY + (l.bottom - l.topY) * u1 + 0.5,
+          )
+          .stroke({ color, alpha: a, width: 1 });
+      }
+    };
+    if (style !== 'minimal') for (let e = 1; e < 4; e++) strokeAlong(e, 0xffffff, 0.1);
     if (style === 'grid') {
       // Faint static cross lines, denser toward the horizon like the beat lines.
       for (let i = 1; i < 12; i++) {
         const q = project(l, i / 12, this.proj);
         hw.moveTo(l.cx - q.w / 2, q.y)
           .lineTo(l.cx + q.w / 2, q.y)
-          .stroke({ color: o.palette.accent2, alpha: 0.08, width: 1 });
+          .stroke({ color: o.palette.accent2, alpha: 0.08 * farFade(q.s), width: 1 });
       }
     }
-    for (const e of [0, 4])
-      hw.moveTo(laneEdgeX(l, l.topW, e), l.topY)
-        .lineTo(laneEdgeX(l, l.bottomW, e), l.bottom)
-        .stroke({ color: o.palette.accent, alpha: 0.55, width: 1 });
+    for (const e of [0, 4]) strokeAlong(e, o.palette.accent, 0.55);
     this.root.addChild(hw);
 
-    // ---- lane beams
+    // ---- lane beams (stacked so they dissolve at the far end too)
     for (let lane = 0; lane < 4; lane++) {
       const g = new Graphics();
-      g.poly([
-        laneEdgeX(l, l.topW, lane),
-        l.topY,
-        laneEdgeX(l, l.topW, lane + 1),
-        l.topY,
-        laneEdgeX(l, l.bottomW, lane + 1),
-        l.bottom,
-        laneEdgeX(l, l.bottomW, lane),
-        l.bottom,
-      ]).fill(0xffffff);
+      for (let i = 0; i < steps; i++) {
+        const u0 = i / steps;
+        const u1 = (i + 1) / steps;
+        const w0 = l.topW + (l.bottomW - l.topW) * u0;
+        const w1 = l.topW + (l.bottomW - l.topW) * u1;
+        const y0 = l.topY + (l.bottom - l.topY) * u0;
+        const y1 = l.topY + (l.bottom - l.topY) * u1 + 0.5;
+        g.poly([
+          laneEdgeX(l, w0, lane),
+          y0,
+          laneEdgeX(l, w0, lane + 1),
+          y0,
+          laneEdgeX(l, w1, lane + 1),
+          y1,
+          laneEdgeX(l, w1, lane),
+          y1,
+        ]).fill({ color: 0xffffff, alpha: farFade((u0 + u1) / 2) });
+      }
       g.tint = o.palette.lane[lane]!;
       g.alpha = 0;
       g.visible = false;
