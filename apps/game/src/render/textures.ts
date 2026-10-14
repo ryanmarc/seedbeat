@@ -22,7 +22,7 @@ export interface TextureKit {
   /** 1×1 white, tinted for lines, beams and particles. */
   white: Texture;
   particle: Texture;
-  /** Receptor outlines, hit line and key labels, from `stripY` to the bottom. */
+  /** Receptor outlines and key labels, from `stripY` to the bottom. */
   strip: Texture;
   stripY: number;
   /** Receptor pressed/filled overlay for one lane. */
@@ -155,15 +155,13 @@ export function buildTextures(
     resolution,
   );
 
-  // Receptor strip: hit line, receptor outlines, key caps (desktop).
+  // Receptor strip: receptor outlines, key caps (desktop). The receptors mark the hit position;
+  // the prototype's full-width hit line was dropped as clutter.
   const stripY = Math.floor(l.hitY - 14);
   const strip = bake(
     renderer,
     (g) => {
       g.rect(0, 0, l.width, l.height - stripY).fill({ color: 0, alpha: 0.001 });
-      g.moveTo(l.cx - l.nearW / 2, l.hitY - stripY)
-        .lineTo(l.cx + l.nearW / 2, l.hitY - stripY)
-        .stroke({ color: pal.accent2, width: 2, alpha: 0.4 });
       for (let lane = 0; lane < 4; lane++) {
         const cx = l.cx + (lane - 1.5) * l.laneW;
         g.roundRect(cx - l.laneW * 0.42, l.hitY - stripY - 10, l.laneW * 0.84, 20, 8).stroke({
