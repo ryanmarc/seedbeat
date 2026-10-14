@@ -163,7 +163,7 @@ export function buildTextures(
       g.rect(0, 0, l.width, l.height - stripY).fill({ color: 0, alpha: 0.001 });
       g.moveTo(l.cx - l.nearW / 2, l.hitY - stripY)
         .lineTo(l.cx + l.nearW / 2, l.hitY - stripY)
-        .stroke({ color: pal.accent2, width: 2, alpha: 0.9 });
+        .stroke({ color: pal.accent2, width: 2, alpha: 0.4 });
       for (let lane = 0; lane < 4; lane++) {
         const cx = l.cx + (lane - 1.5) * l.laneW;
         g.roundRect(cx - l.laneW * 0.42, l.hitY - stripY - 10, l.laneW * 0.84, 20, 8).stroke({
