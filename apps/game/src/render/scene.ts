@@ -504,9 +504,8 @@ export class Scene {
       if (fresh && sec.type === 'chorus' && !this.reducedMotion && !f.idle && !f.paused)
         this.chorusFlashAt = f.perf;
     }
-    // Subtle camera bob on the beat: background only, so the hit line never moves.
-    this.background.container.y =
-      this.reducedMotion || f.idle ? 0 : -2.5 * pulse * INTENSITY[sec.type];
+    // No camera bob: the sky (sun, moon, stars) must hold still; the beat is shown by the
+    // backgrounds' own pulses and the grid scroll.
     this.background.update({
       t,
       pulse,
