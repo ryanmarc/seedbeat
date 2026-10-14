@@ -2,7 +2,7 @@
  * Per-mood backgrounds (RENDERING.md §3). Static parts are drawn once into a texture; moving
  * parts are small pools of sprites updated in place. Nothing allocates in `update`.
  */
-import { Container, Graphics, Sprite, type Renderer, type Texture } from 'pixi.js';
+import { Container, Graphics, Rectangle, Sprite, type Renderer, type Texture } from 'pixi.js';
 import { mulberry, type MoodId } from '@seedbeat/core';
 import type { Layout } from './layout';
 import type { TextureKit } from './textures';
@@ -58,11 +58,24 @@ function scenery(l: Layout) {
   return { buildings, mount, rain, stars, hills };
 }
 
-function bakeStatic(renderer: Renderer, draw: (g: Graphics) => void, resolution: number): Texture {
+/**
+ * Bakes a background's static layer into a texture the size of the screen. The frame matters:
+ * without it, generateTexture sizes the texture to the drawing's bounds, and the synthwave floor
+ * lines and techno fog circles reach well outside the viewport. The texture then started off-screen
+ * (the sprite sits at 0,0), which shifted the whole picture sideways, and it cost several times the
+ * screen's worth of GPU memory.
+ */
+function bakeStatic(
+  renderer: Renderer,
+  l: Layout,
+  draw: (g: Graphics) => void,
+  resolution: number,
+): Texture {
   const g = new Graphics();
   draw(g);
   const tex = renderer.generateTexture({
     target: g,
+    frame: new Rectangle(0, 0, l.width, l.height),
     resolution: Math.min(resolution, 1.5),
     antialias: true,
   });
@@ -117,6 +130,7 @@ class SynthwaveBackground implements Background {
     const sc = scenery(l);
     this.staticTex = bakeStatic(
       renderer,
+      l,
       (g) => {
         gradientRect(g, 0, 0, W, hy, [
           [0, 0x0d0221],
@@ -210,6 +224,7 @@ class LofiBackground implements Background {
     const my = H * 0.16;
     this.staticTex = bakeStatic(
       renderer,
+      l,
       (g) => {
         gradientRect(g, 0, 0, W, H, [
           [0, 0x16121f],
@@ -296,6 +311,7 @@ class ChiptuneBackground implements Background {
     const base = l.horizonY + (l.hitY - l.horizonY) * 0.35;
     this.staticTex = bakeStatic(
       renderer,
+      l,
       (g) => {
         gradientRect(g, 0, 0, W, H, [
           [0, 0x070b24],
@@ -318,6 +334,7 @@ class ChiptuneBackground implements Background {
     // Hills: static bodies baked, rims pulse.
     const hillsTex = bakeStatic(
       renderer,
+      l,
       (g) => {
         for (let i = 0; i < sc.hills.length; i++) {
           const h = (sc.hills[i]! + 1) * 16;
@@ -379,6 +396,7 @@ class TechnoBackground implements Background {
     this.M = Math.max(W, H);
     this.staticTex = bakeStatic(
       renderer,
+      l,
       (g) => {
         g.rect(0, 0, W, H).fill(0x050507);
         for (let i = 10; i >= 1; i--)
