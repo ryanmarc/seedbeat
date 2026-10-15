@@ -56,7 +56,9 @@ export const FRIDAY: CuratedSong = {
     outro: [[0, 4], [5, 2], [0, 4], 0],
   },
   melody: {
-    // Chopped-vocal riff (the "answer"): alone in the intro and outro, and in the hook's rests.
+    // Vocal onsets measured on the stems sit 0.4–0.7 of a step behind the drum grid; the tokens
+    // below are quantised with that lag removed, so the phrases land on the beat the player feels.
+    // Chopped-vocal riff (the "answer"): alone in the intro and outro, and in the rests elsewhere.
     intro: [
       '.   .   .   .   .   .   .   .   .   .   B3  C#4 C#4 B3  C#4 C#4',
       'B3  B3  B3  .   .   .   .   .   .   B3  .   .   .   B3  C#4 C#4',
@@ -67,28 +69,28 @@ export const FRIDAY: CuratedSong = {
     ],
     // Hook, track bars 11–18 (vocal stem), with the riff answering in the rests.
     chorus: [
-      '.   .   .   .   .   .   .   F#4 E4  -   D4  .   .   C#4 D4  -',
-      '.   E4  -   .   B3  C#4 -   B3  A3  -   .   A3  -   B3  -   -',
-      '.   .   .   .   A3  -   -   .   .   A4  B3  C#4 C#4 B3  .   F#4',
-      'F#4 D4  -   E4  -   D4  -   .   .   B3  .   .   D4  E4  -   .',
-      '.   .   .   .   .   .   .   .   E4  -   D4  -   B3  C#4 .   .',
-      '.   E4  -   .   .   C#4 B3  -   .   A3  .   A3  -   .   B3  .',
-      '.   .   .   .   .   .   A3  -   .   .   B3  C#4 C#4 E4  -   F#4',
-      '.   .   .   .   .   .   .   .   B3  -   .   .   .   B3  C#4 C#4',
+      '.   .   .   .   .   .   E4  F#4 E4  .   D4  .   B3  C#4 D4  -',
+      '.   E4  -   .   B3  C#4 B3  .   A3  -   .   A3  -   B3  -   .',
+      '.   .   .   .   A3  A3  .   .   .   A4  B3  C#4 C#4 B3  .   F#4',
+      '.   D4  -   E4  E4  D4  D4  .   .   B3  .   .   D4  E4  -   .',
+      'B3  B3  B3  .   .   .   .   .   E4  .   D4  .   B3  C#4 D4  .',
+      '.   E4  -   .   .   C#4 B3  .   A3  A3  .   A3  .   B3  -   .',
+      '.   B3  C#4 C#4 .   .   A3  -   .   .   F#4 .   E4  -   .   F#4',
+      '.   .   .   .   .   B3  .   .   B3  -   .   .   .   B3  C#4 C#4',
     ],
     // Second phrase, track bars 19–22, riff answers in the rests.
     verse: [
-      '.   C#4 -   .   .   C#4 .   .   .   B3  -   .   .   F#4 -   .',
-      '.   C#4 -   -   B3  .   A3  -   -   .   .   .   .   F#4 -   -',
-      '.   .   C#4 -   -   -   .   .   .   .   B3  .   .   B3  C#4 C#4',
-      '.   F#4 -   .   C#4 -   -   -   .   A3  -   -   .   A3  -   .',
+      '.   C#4 C#4 .   .   C#4 A3  .   .   B3  .   .   E4  F#4 -   .',
+      '.   C#4 C#4 .   B3  C#4 A3  -   .   B3  .   .   E4  F#4 -   .',
+      'B3  C#4 -   .   C#4 .   .   .   .   B3  .   .   B3  C#4 C#4 .',
+      '.   F#4 .   G4  C#4 -   -   .   .   A3  -   .   .   A3  -   A3',
     ],
-    // Middle-section vocal line, track bars 51–54.
+    // Middle-section vocal line, track bars 51–54, light riff answers in the long rests.
     bridge: [
-      '.   .   .   .   .   E4  .   .   .   .   .   C#4 .   .   C#4 .',
-      '.   C#4 D4  .   .   D4  -   .   .   .   .   .   .   .   .   .',
-      '.   .   .   F#4 .   F#4 -   .   C#4 -   .   C#4 .   .   C#4 -',
-      '.   .   D4  .   .   D4  -   .   A4  .   .   .   .   .   .   .',
+      '.   .   .   .   .   E4  .   .   .   B3  .   C#4 .   .   C#4 .',
+      '.   C#4 D4  .   .   D4  .   .   B3  .   .   A3  .   .   A3  .',
+      '.   .   F#4 .   .   F#4 F#4 .   C#4 .   .   C#4 .   .   C#4 .',
+      '.   C#4 D4  .   .   D4  .   A4  .   .   B3  C#4 C#4 B3  .   .',
     ],
   },
 };

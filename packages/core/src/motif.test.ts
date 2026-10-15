@@ -29,7 +29,7 @@ describe('authored motifs', () => {
         .map((e) => e.midi!);
     // Bar 1 of the hook: E4 F#4 E4 D4 B3 C#4 D4
     expect(leadMidis(start)).toEqual(
-      ['F#4', 'E4', 'D4', 'C#4', 'D4'].map((n) => noteToMidi(n) + 12),
+      ['E4', 'F#4', 'E4', 'D4', 'B3', 'C#4', 'D4'].map((n) => noteToMidi(n) + 12),
     );
     // Bar 2 ends on B3 (played B4); no chromatic notes in the hook.
     expect(leadMidis(start + 1).at(-1)).toBe(noteToMidi('B3') + 12);
@@ -38,9 +38,9 @@ describe('authored motifs', () => {
     const s = makeSong('friday', 'techno', 'song');
     const start = s.sections.find((x) => x.type === 'chorus')!.start;
     const first = getBar(s, start).ev.find((e) => e.type === 'lead')!;
-    // Written F#4 (66), played one octave up so it sits where the moods' leads sit.
+    // Written E4 (64), played one octave up so it sits where the moods' leads sit.
     expect(s.curated?.transpose).toBe(12);
-    expect(first.midi).toBe(noteToMidi('F#4') + 12);
+    expect(first.midi).toBe(noteToMidi('E4') + 12);
   });
   it('endless cycles transpose the authored notes', () => {
     const s = makeSong('friday', 'techno', 'endless');
