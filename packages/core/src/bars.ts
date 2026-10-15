@@ -58,8 +58,12 @@ export interface Bar {
   byStep: BarEvent[][];
 }
 
-/** The second-half chord degree of a curated bar, or null when the bar has one chord. */
-function secondHalfChord(s: Song, sec: SectionInfo): number | null {
+/**
+ * Both chord degrees of a curated bar (second = first when the bar has one chord), or null for
+ * procedural songs. Resolved from the entry so first and second halves always come from the
+ * same bar whatever the progression length (`Song.progs` is a 4-bar first-half copy for readouts).
+ */
+function curatedChords(s: Song, sec: SectionInfo): readonly [number, number] | null {
   const c = s.curated;
   if (!c) return null;
   const type: SectionType = c.progs[sec.type]
@@ -72,7 +76,7 @@ function secondHalfChord(s: Song, sec: SectionInfo): number | null {
   const p = c.progs[type];
   if (!p) return null;
   const bar = p[sec.barIn % p.length]!;
-  return typeof bar === 'number' ? null : bar[1];
+  return typeof bar === 'number' ? [bar, bar] : [bar[0], bar[1]];
 }
 
 /**
@@ -88,9 +92,10 @@ export function getBar(s: Song, bar: number): Bar {
   const mk = s.mood;
   const r = rngFor(s.seed, mk, 'bar', bar);
   const prog = s.progs[sec.type];
-  const cd = prog[sec.barIn % prog.length]!;
   // Curated bars may carry a second chord for steps 8–15 (half-bar harmonic rhythm).
-  const cd2 = secondHalfChord(s, sec) ?? cd;
+  const cur = curatedChords(s, sec);
+  const cd = cur ? cur[0] : prog[sec.barIn % prog.length]!;
+  const cd2 = cur ? cur[1] : cd;
   const chordAt = (step: number): number => (step < 8 ? cd : cd2);
   const root = s.root + sec.transpose;
   const D = (deg: number): number => degToMidi(s.scale, root, deg);

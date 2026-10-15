@@ -64,7 +64,7 @@ describe('curated songs', () => {
     expect(a.name).toBe('Friday');
     expect(a.progs.chorus).toEqual([0, 5, 0, 5]); // first-half degrees of the 2-bar pair loop
     expect(a.progs.intro).toEqual(a.progs.verse);
-    expect(a.progs.outro).toEqual(a.progs.chorus);
+    expect(a.progs.outro).toEqual([0, 5, 0, 0]); // authored outro, tonic on its last bar
     expect(a.sd).toBeCloseTo(60 / 124 / 4, 12);
     expect(a.pat).toEqual(b.pat); // procedural picks keyed by the canonical seed
     expect(a.sections).toEqual(b.sections);

@@ -66,3 +66,63 @@ describe('authored bass and break bars', () => {
     expect(b.ev.filter((e) => e.type === 'bass').length).toBeGreaterThan(0);
   });
 });
+
+describe('half-bar chords, both halves from the entry', () => {
+  /** A friday song whose curated entry is replaced (before any bar is generated). */
+  const withEntry = (mood: 'lofi' | 'synthwave' | 'chiptune' | 'techno', patch: object) => {
+    const s = makeSong('friday', mood, 'song');
+    s.curated = { ...s.curated!, ...patch };
+    return s;
+  };
+  it('a 3-bar progression keeps first and second halves from the same bar', () => {
+    const s = withEntry('techno', {
+      progs: {
+        chorus: [
+          [0, 4],
+          [5, 2],
+          [1, 3],
+        ],
+      },
+    });
+    const chorus = s.sections.find((x) => x.type === 'chorus')!.start;
+    const D = (deg: number): number => degToMidi(s.scale, s.root, deg);
+    const stabs = getBar(s, chorus + 4).ev.filter((e) => e.type === 'stab'); // bar 4 → p[1] = [5, 2]
+    expect(stabs.filter((e) => e.step < 8).map((e) => e.midis![0])).toEqual([D(5) + 12, D(5) + 12]);
+    expect(stabs.filter((e) => e.step >= 8).map((e) => e.midis![0])).toEqual([
+      D(2) + 12,
+      D(2) + 12,
+    ]);
+  });
+  it('synthwave splits the pad and chiptune switches the arp triad at step 8', () => {
+    const sw = makeSong('friday', 'synthwave', 'song');
+    const chorus = sw.sections.find((x) => x.type === 'chorus')!.start;
+    const pads = getBar(sw, chorus).ev.filter((e) => e.type === 'pad');
+    expect(pads.map((e) => `${e.step}:${e.len}`)).toEqual(['0:8', '8:8']);
+    expect(pads[0]!.midis).not.toEqual(pads[1]!.midis);
+    const ch = makeSong('friday', 'chiptune', 'song');
+    const arps = getBar(ch, ch.sections.find((x) => x.type === 'chorus')!.start)
+      .ev.filter((e) => e.type === 'arp')
+      .map((e) => e.midi!);
+    expect(new Set(arps.slice(0, 8)).size).toBe(3);
+    expect(new Set(arps.slice(8)).size).toBe(3);
+    expect(new Set(arps.slice(0, 8))).not.toEqual(new Set(arps.slice(8)));
+  });
+  it('the procedural bass follows the second chord when an entry has no bass of its own', () => {
+    const s = withEntry('synthwave', { bass: undefined });
+    const chorus = s.sections.find((x) => x.type === 'chorus')!.start;
+    const bass = getBar(s, chorus).ev.filter((e) => e.type === 'bass');
+    const D = (deg: number): number => degToMidi(s.scale, s.root, deg);
+    expect(bass.find((e) => e.step === 0)!.midi).toBe(D(0) - 12);
+    expect(bass.find((e) => e.step === 8)!.midi).toBe(D(4) - 12);
+  });
+});
+
+describe('friday cadence', () => {
+  it('ends on the tonic triad', () => {
+    const s = makeSong('friday', 'techno', 'song');
+    const last = getBar(s, s.total! - 1);
+    const D = (deg: number): number => degToMidi(s.scale, s.root, deg);
+    const pad = last.ev.find((e) => e.type === 'pad');
+    expect(pad?.midis).toEqual([D(0) + 12, D(2) + 12, D(4) + 12]);
+  });
+});

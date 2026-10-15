@@ -13,7 +13,7 @@ describe('friday snapshot', () => {
     it(`${mood}: skeleton, first chorus lead, chart sizes`, () => {
       const s = makeSong('friday', mood, 'song');
       const chorus = s.sections.find((x) => x.type === 'chorus')!.start;
-      const lead = [0, 1, 2, 3].map((k) =>
+      const lead = [0, 1, 2, 3, 4, 5, 6, 7].map((k) =>
         getBar(s, chorus + k)
           .ev.filter((e) => e.type === 'lead')
           .map((e) => `${e.step}:${e.midi}:${e.len}`)

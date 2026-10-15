@@ -52,6 +52,8 @@ export const FRIDAY: CuratedSong = {
       [0, 4],
       [5, 2],
     ],
+    // The outro resolves to the tonic on its last bar (the cadence sounds the bar's chord).
+    outro: [[0, 4], [5, 2], [0, 4], 0],
   },
   melody: {
     // Chopped-vocal riff (the "answer"): alone in the intro and outro, and in the hook's rests.
