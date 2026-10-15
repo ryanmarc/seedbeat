@@ -42,8 +42,7 @@ export function SelectScreen() {
   const playMode: PlayMode = sel.practice ? 'practice' : sel.mode;
   const sections = sel.practice && song.total !== null ? sectionChoices(song) : [];
   const set = (patch: Partial<Selection>): void => {
-    const p = patch.seed === undefined ? patch : { ...patch, seed: seedFromInput(patch.seed) };
-    selection.value = { ...selection.value, ...p };
+    selection.value = { ...selection.value, ...patch };
     void controller.ensureIdle();
     if (listening.value) void controller.listen(false);
   };
@@ -155,6 +154,7 @@ export function SelectScreen() {
               spellcheck={false}
               value={sel.seed}
               onInput={(e) => set({ seed: (e.target as HTMLInputElement).value.trim() })}
+              onBlur={(e) => set({ seed: seedFromInput((e.target as HTMLInputElement).value) })}
             />
             <button type="button" class="btn" onClick={() => set({ seed: randomSeed() })}>
               Shuffle
@@ -216,7 +216,7 @@ export function SelectScreen() {
                     type="button"
                     class="chip"
                     aria-pressed={s === sel.seed}
-                    onClick={() => set({ seed: s })}
+                    onClick={() => set({ seed: seedFromInput(s) })}
                   >
                     {save.value.favourites.includes(s) ? '★ ' : ''}
                     {s}

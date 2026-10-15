@@ -592,9 +592,12 @@ export class GameController {
     const t = await this.transportOrToast();
     if (!t) return;
     const s = this.settings;
-    const sel: Selection = tutorial
+    // Commit point for the seed: curated words are played, scored and shared under their key.
+    const raw: Selection = tutorial
       ? { mood: TUTORIAL_MOOD, mode: 'song', difficulty: 0, seed: TUTORIAL_SEED }
       : selection.value;
+    const sel: Selection = tutorial ? raw : { ...raw, seed: seedFromInput(raw.seed) };
+    if (sel.seed !== raw.seed) selection.value = sel;
     const practice = !tutorial && sel.practice ? sel.practice : null;
     const kind: RunKind = tutorial
       ? 'tutorial'
