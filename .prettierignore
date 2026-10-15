@@ -5,3 +5,4 @@ tools/golden/fixtures/
 **/.vite/
 playwright-report/
 test-results/
+.superpowers/
