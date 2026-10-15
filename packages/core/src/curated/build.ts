@@ -14,6 +14,12 @@ export interface CuratedSong {
   scale: ScaleName;
   /** MIDI note of the key root (B2 = 47). */
   root: number;
+  /**
+   * Semitones added to every authored note when played, so melodies can be written at the
+   * pitch they were sung and still sit in the moods' lead register (procedural leads centre
+   * around two octaves above the root). Default 0.
+   */
+  transpose?: number;
   /** Missing types fall back: intro → verse, outro → chorus; otherwise the procedural draw. */
   progs: Partial<Record<SectionType, Progression>>;
   /**

@@ -99,8 +99,10 @@ function authoredMotif(s: Song, type: SectionType): Motif | null {
   const key = 'authored:' + use;
   const cached = s.motifs.get(key);
   if (cached) return cached;
-  // Lead degrees sound two octaves above the root (bars.ts adds 24), so parse against root + 24.
-  const parsed = parseMelody(bars, SCALES[c.scale], c.root + 24);
+  // Lead degrees sound two octaves above the root (bars.ts adds 24), so a note written at pitch
+  // P must be parsed against root + 24; the entry's transpose lowers that reference so the
+  // same written note plays higher.
+  const parsed = parseMelody(bars, SCALES[c.scale], c.root + 24 - (c.transpose ?? 0));
   const motif: Motif = { notes: parsed.notes, bars: parsed.bars, authored: true };
   s.motifs.set(key, motif);
   return motif;
