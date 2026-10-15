@@ -1,4 +1,4 @@
-import { DRUMS, SECT, patternHit, type DrumMode } from './moods';
+import { DRUMS, SECT, patternHit, type DrumMode, type SectionType } from './moods';
 import { getMotif } from './motif';
 import { rngFor } from './rng';
 import { degToMidi, snap } from './theory';
@@ -58,6 +58,23 @@ export interface Bar {
   byStep: BarEvent[][];
 }
 
+/** The second-half chord degree of a curated bar, or null when the bar has one chord. */
+function secondHalfChord(s: Song, sec: SectionInfo): number | null {
+  const c = s.curated;
+  if (!c) return null;
+  const type: SectionType = c.progs[sec.type]
+    ? sec.type
+    : sec.type === 'intro'
+      ? 'verse'
+      : sec.type === 'outro'
+        ? 'chorus'
+        : sec.type;
+  const p = c.progs[type];
+  if (!p) return null;
+  const bar = p[sec.barIn % p.length]!;
+  return typeof bar === 'number' ? null : bar[1];
+}
+
 /**
  * All events for a bar. Pure in (song, bar); memoised on the song. Generating bars in any order
  * gives the same result because every random draw is keyed by the bar.
@@ -72,6 +89,9 @@ export function getBar(s: Song, bar: number): Bar {
   const r = rngFor(s.seed, mk, 'bar', bar);
   const prog = s.progs[sec.type];
   const cd = prog[sec.barIn % prog.length]!;
+  // Curated bars may carry a second chord for steps 8–15 (half-bar harmonic rhythm).
+  const cd2 = secondHalfChord(s, sec) ?? cd;
+  const chordAt = (step: number): number => (step < 8 ? cd : cd2);
   const root = s.root + sec.transpose;
   const D = (deg: number): number => degToMidi(s.scale, root, deg);
   const ev: BarEvent[] = [];
@@ -152,40 +172,45 @@ export function getBar(s: Song, bar: number): Bar {
   if (isEnd && mk !== 'lofi') add(0, { type: 'crash', vel: 0.8 });
 
   // ---- bass
-  const bm = D(cd) - 12;
-  const b5 = D(cd + 4) - 12;
+  const bmAt = (i: number): number => D(chordAt(i)) - 12;
+  const b5At = (i: number): number => D(chordAt(i) + 4) - 12;
   if (sec.type !== 'intro' || mk === 'techno') {
     if (isEnd) {
       add(0, { type: 'bass', midi: D(0) - 12, len: 12 });
     } else if (mk === 'lofi') {
-      add(0, { type: 'bass', midi: bm, len: 6 });
+      add(0, { type: 'bass', midi: bmAt(0), len: 6 });
       const at = r.pick([6, 10]);
-      add(at, { type: 'bass', midi: r.chance(0.5) ? b5 : bm, len: 4 });
-      if (r.chance(0.4)) add(14, { type: 'bass', midi: bm + 12, len: 2 });
+      add(at, { type: 'bass', midi: r.chance(0.5) ? b5At(at) : bmAt(at), len: 4 });
+      if (r.chance(0.4)) add(14, { type: 'bass', midi: bmAt(14) + 12, len: 2 });
     } else if (mk === 'synthwave') {
       if (mode === 'break') {
-        add(0, { type: 'bass', midi: bm, len: 6 });
-        add(8, { type: 'bass', midi: bm, len: 6 });
+        add(0, { type: 'bass', midi: bmAt(0), len: 6 });
+        add(8, { type: 'bass', midi: bmAt(8), len: 6 });
       } else {
         for (let i = 0; i < 16; i += 2)
-          add(i, { type: 'bass', midi: i % 4 === 2 ? bm + 12 : bm, len: 1.6 });
+          add(i, { type: 'bass', midi: i % 4 === 2 ? bmAt(i) + 12 : bmAt(i), len: 1.6 });
       }
     } else if (mk === 'chiptune') {
-      const seq = [bm, bm + 12, b5, bm + 12];
-      for (let i = 0; i < 16; i += 2) add(i, { type: 'bass', midi: seq[(i / 2) % 4]!, len: 1.2 });
+      for (let i = 0; i < 16; i += 2) {
+        const seq = [bmAt(i), bmAt(i) + 12, b5At(i), bmAt(i) + 12];
+        add(i, { type: 'bass', midi: seq[(i / 2) % 4]!, len: 1.2 });
+      }
     } else {
       if (mode === 'break' || (mode === 'light' && sec.type === 'intro' && sec.barIn < 2)) {
-        add(0, { type: 'drone', midi: bm, len: 16 });
+        add(0, { type: 'drone', midi: bmAt(0), len: 16 });
       } else {
-        for (const i of [2, 6, 10, 14]) add(i, { type: 'bass', midi: bm, len: 1.4 });
+        for (const i of [2, 6, 10, 14]) add(i, { type: 'bass', midi: bmAt(i), len: 1.4 });
         if (mode === 'big')
-          for (const i of [3, 7, 11, 15]) add(i, { type: 'bass', midi: bm, len: 0.9, vel: 0.6 });
+          for (const i of [3, 7, 11, 15])
+            add(i, { type: 'bass', midi: bmAt(i), len: 0.9, vel: 0.6 });
       }
     }
   }
 
   // ---- harmony
-  const tones = (m.sevenths ? [0, 2, 4, 6] : [0, 2, 4]).map((x) => D(cd + x) + 12);
+  const tonesAt = (i: number): number[] =>
+    (m.sevenths ? [0, 2, 4, 6] : [0, 2, 4]).map((x) => D(chordAt(i) + x) + 12);
+  const tones = tonesAt(0);
   if (isEnd) {
     add(0, {
       type: mk === 'lofi' ? 'keys' : mk === 'chiptune' ? 'arp' : 'pad',
@@ -195,16 +220,19 @@ export function getBar(s: Song, bar: number): Bar {
     });
   } else if (mk === 'lofi') {
     add(0, { type: 'keys', midis: tones, len: 15 });
-    if (r.chance(0.35)) add(10, { type: 'keys', midis: tones, len: 6, vel: 0.6 });
+    if (r.chance(0.35)) add(10, { type: 'keys', midis: tonesAt(10), len: 6, vel: 0.6 });
   } else if (mk === 'synthwave') {
-    add(0, { type: 'pad', midis: tones, len: 16 });
+    if (cd2 !== cd) {
+      add(0, { type: 'pad', midis: tones, len: 8 });
+      add(8, { type: 'pad', midis: tonesAt(8), len: 8 });
+    } else add(0, { type: 'pad', midis: tones, len: 16 });
   } else if (mk === 'chiptune') {
     const stepN = mode === 'break' || mode === 'light' ? 2 : 1;
     for (let i = 0; i < 16; i += stepN)
-      add(i, { type: 'arp', midi: tones[(i / stepN) % tones.length]! + 12, len: 0.85 });
+      add(i, { type: 'arp', midi: tonesAt(i)[(i / stepN) % tones.length]! + 12, len: 0.85 });
   } else {
     if (sec.type !== 'intro')
-      for (const i of s.stab) add(i, { type: 'stab', midis: tones, len: 1 });
+      for (const i of s.stab) add(i, { type: 'stab', midis: tonesAt(i), len: 1 });
   }
 
   const byStep: BarEvent[][] = Array.from({ length: 16 }, () => []);

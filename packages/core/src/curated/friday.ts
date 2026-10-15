@@ -14,10 +14,20 @@ export const FRIDAY: CuratedSong = {
   root: 47, // B2
   // Vocal pitches are written as sung (4th octave); the synth leads sit an octave higher.
   transpose: 12,
+  // Two chords per bar, a 2-bar loop: Bm | F# ‖ G | D.
   progs: {
-    chorus: [0, 0, 0, 5],
-    verse: [0, 0, 5, 6],
-    bridge: [0, 5, 2, 6],
+    chorus: [
+      [0, 4],
+      [5, 2],
+    ],
+    verse: [
+      [0, 4],
+      [5, 2],
+    ],
+    bridge: [
+      [0, 4],
+      [5, 2],
+    ],
   },
   melody: {
     // Main hook, track bars 11–14 (repeats 15–18 with small variations).

@@ -130,4 +130,6 @@ export {
   tempoFor,
   type CuratedSong,
   type AuthoredNote,
+  type CuratedBarChord,
+  type CuratedProgression,
 } from './curated';

@@ -8,7 +8,13 @@ import {
 } from './moods';
 import { rngFor } from './rng';
 import { SCALES, type Scale, type ScaleName } from './theory';
-import { canonicalSeed, findCurated, tempoFor, type CuratedSong } from './curated';
+import {
+  canonicalSeed,
+  findCurated,
+  tempoFor,
+  type CuratedProgression,
+  type CuratedSong,
+} from './curated';
 import type { Bar } from './bars';
 import type { Motif } from './motif';
 
@@ -82,6 +88,16 @@ const CYCLE: readonly (readonly [SectionType, number])[] = [
 const CYCLE_LEN = 48;
 const TRANSPOSE = [0, 2, 5, -2, 3, -4] as const;
 
+/** Four bars of first-half degrees from a curated progression (looping), for `Song.progs`. */
+function firstHalf(p: CuratedProgression | undefined): Progression | undefined {
+  if (!p) return undefined;
+  const deg = (i: number): number => {
+    const c = p[i % p.length]!;
+    return typeof c === 'number' ? c : c[0];
+  };
+  return [deg(0), deg(1), deg(2), deg(3)];
+}
+
 /** Builds the song skeleton. Draw order is frozen for generator v1. */
 export function makeSong(seed: string, mood: MoodId, mode: Mode): Song {
   const m = MOODS[mood];
@@ -100,15 +116,17 @@ export function makeSong(seed: string, mood: MoodId, mode: Mode): Song {
   const verse0 = r.pick(m.progs);
   const chorus0 = r.pick(m.progs);
   const bridge0 = r.pick(m.progs);
-  const verse = curated?.progs.verse ?? verse0;
-  const chorus = curated?.progs.chorus ?? chorus0;
-  const bridge = curated?.progs.bridge ?? bridge0;
+  // Song.progs holds one degree per bar (the first half of a curated pair); getBar reads the
+  // second-half degree from the curated entry itself.
+  const verse = firstHalf(curated?.progs.verse) ?? verse0;
+  const chorus = firstHalf(curated?.progs.chorus) ?? chorus0;
+  const bridge = firstHalf(curated?.progs.bridge) ?? bridge0;
   const progs: Record<SectionType, Progression> = {
     verse,
     chorus,
     bridge,
-    intro: curated?.progs.intro ?? verse,
-    outro: curated?.progs.outro ?? chorus,
+    intro: firstHalf(curated?.progs.intro) ?? verse,
+    outro: firstHalf(curated?.progs.outro) ?? chorus,
   };
   const dk = DRUMS[mood];
   const pat = {

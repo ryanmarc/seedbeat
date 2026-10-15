@@ -2,8 +2,12 @@
  * Authoring helpers for curated seeds (docs/superpowers/specs/2026-10-15-curated-seeds-design.md).
  * Pure functions: tokens → motif notes, reference tempo → per-mood tempo.
  */
-import { MOODS, type MoodId, type Progression, type SectionType } from '../moods';
+import { MOODS, type MoodId, type SectionType } from '../moods';
 import type { Scale, ScaleName } from '../theory';
+
+/** One bar of a curated progression: a chord degree, or two degrees (first and second half). */
+export type CuratedBarChord = number | readonly [number, number];
+export type CuratedProgression = readonly CuratedBarChord[];
 
 export interface CuratedSong {
   /** Shown as the song name. */
@@ -20,8 +24,12 @@ export interface CuratedSong {
    * around two octaves above the root). Default 0.
    */
   transpose?: number;
-  /** Missing types fall back: intro → verse, outro → chorus; otherwise the procedural draw. */
-  progs: Partial<Record<SectionType, Progression>>;
+  /**
+   * Chord degrees per bar, looping by bar within the section. A bar is one degree or a pair
+   * (first and second half). Missing types fall back: intro → verse, outro → chorus; otherwise
+   * the procedural draw.
+   */
+  progs: Partial<Record<SectionType, CuratedProgression>>;
   /**
    * Bars of 16 tokens per 16th step: note name (`E4`, `A#3`, `Bb3`), `.` rest, `-` extend the
    * previous note. 2 or 4 bars.

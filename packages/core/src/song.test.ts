@@ -62,7 +62,7 @@ describe('curated songs', () => {
     expect(a.scaleName).toBe('minor');
     expect(a.root).toBe(47);
     expect(a.name).toBe('Friday');
-    expect(a.progs.chorus).toEqual([0, 0, 0, 5]);
+    expect(a.progs.chorus).toEqual([0, 5, 0, 5]); // first-half degrees of the 2-bar pair loop
     expect(a.progs.intro).toEqual(a.progs.verse);
     expect(a.progs.outro).toEqual(a.progs.chorus);
     expect(a.sd).toBeCloseTo(60 / 124 / 4, 12);

@@ -36,4 +36,6 @@ export {
   midiToDegree,
   type CuratedSong,
   type AuthoredNote,
+  type CuratedBarChord,
+  type CuratedProgression,
 } from './build';
