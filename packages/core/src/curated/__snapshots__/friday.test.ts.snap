@@ -14,11 +14,11 @@ exports[`friday snapshot > chiptune: skeleton, first chorus lead, chart sizes 1`
     },
     {
       "holds": 43,
-      "notes": 506,
+      "notes": 505,
     },
     {
       "holds": 115,
-      "notes": 478,
+      "notes": 477,
     },
   ],
   "lead": [
@@ -154,11 +154,11 @@ exports[`friday snapshot > synthwave: skeleton, first chorus lead, chart sizes 1
     },
     {
       "holds": 43,
-      "notes": 508,
+      "notes": 507,
     },
     {
       "holds": 115,
-      "notes": 475,
+      "notes": 474,
     },
   ],
   "lead": [

@@ -126,3 +126,29 @@ describe('friday cadence', () => {
     expect(pad?.midis).toEqual([D(0) + 12, D(2) + 12, D(4) + 12]);
   });
 });
+
+describe('authored drums and section fills', () => {
+  it('keeps every kick at section ends and only risers into a drop', () => {
+    const s = makeSong('friday', 'techno', 'song');
+    const kicks = (bar: number): number[] =>
+      getBar(s, bar)
+        .ev.filter((e) => e.type === 'kick')
+        .map((e) => e.step);
+    const riser = (bar: number): boolean => getBar(s, bar).ev.some((e) => e.type === 'riser');
+    // Bar 15 ends the verse before a 2-bar break: no fill, no missing kick.
+    expect(kicks(15)).toEqual([0, 4, 8, 12]);
+    expect(riser(15)).toBe(false);
+    // Bar 17 ends the break right before a chorus: the riser builds into the drop.
+    expect(riser(17)).toBe(true);
+    // Bar 25 ends a chorus before another chorus: riser, kicks intact.
+    expect(kicks(25)).toEqual([0, 4, 8, 12]);
+    expect(riser(25)).toBe(true);
+  });
+  it('synthwave rolls into a drop only', () => {
+    const s = makeSong('friday', 'synthwave', 'song');
+    const roll = (bar: number): number =>
+      getBar(s, bar).ev.filter((e) => e.type === 'snare' && e.step >= 12).length;
+    expect(roll(15)).toBe(1); // only the authored clap on 12
+    expect(roll(17)).toBeGreaterThan(1); // the roll into the chorus
+  });
+});

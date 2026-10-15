@@ -160,18 +160,21 @@ export function getBar(s: Song, bar: number): Bar {
         add(i, { type: 'hat', vel: 0.35, open: false });
     }
   }
-  // Fills on the last bar of a section.
-  if (last && !isEnd && mode !== 'light') {
+  // Fills on the last bar of a section. Authored drums fill only into a drop (next section is a
+  // chorus) and never lose kicks: a four-on-the-floor record keeps its kick through section ends.
+  const intoDrop = sectionFor(s, bar + 1).type === 'chorus';
+  if (last && !isEnd && mode !== 'light' && (!ad || intoDrop)) {
     if (mk === 'synthwave' || mk === 'chiptune') {
       for (let i = 12; i < 16; i++) add(i, { type: 'snare', vel: 0.5 + (i - 12) * 0.15 });
     } else if (mk === 'lofi') {
       add(14, { type: 'snare', vel: 0.35 });
       add(15, { type: 'snare', vel: 0.45 });
     } else {
-      for (let j = ev.length - 1; j >= 0; j--) {
-        const e = ev[j]!;
-        if (e.type === 'kick' && e.step >= 12) ev.splice(j, 1);
-      }
+      if (!ad)
+        for (let j = ev.length - 1; j >= 0; j--) {
+          const e = ev[j]!;
+          if (e.type === 'kick' && e.step >= 12) ev.splice(j, 1);
+        }
       add(0, { type: 'riser', len: 16 });
     }
   }
