@@ -13,6 +13,7 @@ import {
 import { controller } from '../app/controller';
 import { currentStreak, isDaily } from '../app/daily';
 import { DIFF_LABEL, MOOD_LABEL, randomSeed, sectionChoices, songMeta } from '../app/format';
+import { seedFromInput } from '../app/seed';
 import { listening, save, selection, type Selection, firstSongHint } from '../app/state';
 import { songKey } from '../save/schema';
 import { Segmented } from './components';
@@ -41,7 +42,8 @@ export function SelectScreen() {
   const playMode: PlayMode = sel.practice ? 'practice' : sel.mode;
   const sections = sel.practice && song.total !== null ? sectionChoices(song) : [];
   const set = (patch: Partial<Selection>): void => {
-    selection.value = { ...selection.value, ...patch };
+    const p = patch.seed === undefined ? patch : { ...patch, seed: seedFromInput(patch.seed) };
+    selection.value = { ...selection.value, ...p };
     void controller.ensureIdle();
     if (listening.value) void controller.listen(false);
   };

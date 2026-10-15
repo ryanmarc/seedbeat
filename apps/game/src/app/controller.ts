@@ -26,6 +26,7 @@ import {
   type TutorialPrompt,
 } from '@seedbeat/core';
 import type { UiSound } from '@seedbeat/worklet/protocol';
+import { seedFromInput } from './seed';
 import { AutoplayBot } from '../engine/bot';
 import { KeyMap } from '../engine/input';
 import { attachInput, pollGamepads } from '../engine/input-dom';
@@ -94,7 +95,7 @@ export function readHash(): { sel: Partial<Selection>; harness: Harness } {
   const moods = ['lofi', 'synthwave', 'chiptune', 'techno'];
   const m = p.get('m');
   const sel: Partial<Selection> = {};
-  if (p.get('s')) sel.seed = p.get('s')!.slice(0, 32);
+  if (p.get('s')) sel.seed = seedFromInput(p.get('s')!);
   if (m && moods.includes(m)) sel.mood = m as Selection['mood'];
   if (p.get('d') !== null)
     sel.difficulty = Math.min(3, Math.max(0, Number(p.get('d')))) as Selection['difficulty'];
