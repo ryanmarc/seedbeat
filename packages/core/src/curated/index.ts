@@ -13,14 +13,19 @@ function keyOf(seed: string): string {
   return seed.trim().toLowerCase();
 }
 
+/** Own keys only: a seed like `constructor` must not reach Object.prototype. */
+function entry(key: string): CuratedSong | null {
+  return Object.hasOwn(CURATED, key) ? CURATED[key]! : null;
+}
+
 export function findCurated(seed: string): CuratedSong | null {
-  return CURATED[keyOf(seed)] ?? null;
+  return entry(keyOf(seed));
 }
 
 /** The registry key when `seed` is curated, otherwise `seed` unchanged. */
 export function canonicalSeed(seed: string): string {
   const k = keyOf(seed);
-  return k in CURATED ? k : seed;
+  return entry(k) ? k : seed;
 }
 
 export { FRIDAY };

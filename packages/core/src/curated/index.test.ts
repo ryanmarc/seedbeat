@@ -11,6 +11,12 @@ describe('curated registry', () => {
     expect(findCurated('fridays')).toBeNull();
     expect(findCurated('amber-11')).toBeNull();
   });
+  it('ignores Object.prototype keys as seeds', () => {
+    for (const seed of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
+      expect(findCurated(seed)).toBeNull();
+      expect(canonicalSeed(seed)).toBe(seed);
+    }
+  });
   it('canonicalises only curated seeds', () => {
     expect(canonicalSeed('Friday')).toBe('friday');
     expect(canonicalSeed(' FRIDAY ')).toBe('friday');
