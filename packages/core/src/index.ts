@@ -121,3 +121,13 @@ export {
   type TutorialChart,
   type TutorialPrompt,
 } from './tutorial';
+export {
+  CURATED,
+  FRIDAY,
+  findCurated,
+  canonicalSeed,
+  parseMelody,
+  tempoFor,
+  type CuratedSong,
+  type AuthoredNote,
+} from './curated';
