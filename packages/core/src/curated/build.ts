@@ -24,6 +24,8 @@ export interface CuratedSong {
    * around two octaves above the root). Default 0.
    */
   transpose?: number;
+  /** Song-mode layout, in order; the song is exactly this long (no length target). */
+  sections?: readonly (readonly [SectionType, number])[];
   /** 1–4 bars of bass tokens (absolute note names, `.`, `-`), looping by bar within a section. */
   bass?: readonly string[];
   /** 16-step drum patterns (`x` hit, `o` soft, `.` rest) replacing the mood's picks in every mood. */

@@ -147,15 +147,25 @@ export function makeSong(seed: string, mood: MoodId, mode: Mode): Song {
   const sections: SongSection[] = [];
   let total: number | null = null;
   if (mode === 'song') {
-    const target = Math.round(105 / barDur);
-    let bar = 0;
-    for (const [type, len] of SONG_ORDER) {
-      if (bar > 0 && bar + len + 4 > target + 6) break;
-      sections.push({ type, len, start: bar });
-      bar += len;
+    if (curated?.sections) {
+      // Authored layout: exactly these sections, no length target.
+      let bar = 0;
+      for (const [type, len] of curated.sections) {
+        sections.push({ type, len, start: bar });
+        bar += len;
+      }
+      total = bar;
+    } else {
+      const target = Math.round(105 / barDur);
+      let bar = 0;
+      for (const [type, len] of SONG_ORDER) {
+        if (bar > 0 && bar + len + 4 > target + 6) break;
+        sections.push({ type, len, start: bar });
+        bar += len;
+      }
+      sections.push({ type: 'outro', len: 4, start: bar });
+      total = bar + 4;
     }
-    sections.push({ type: 'outro', len: 4, start: bar });
-    total = bar + 4;
   }
 
   return {

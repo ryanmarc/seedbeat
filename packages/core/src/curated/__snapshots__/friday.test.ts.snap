@@ -5,20 +5,20 @@ exports[`friday snapshot > chiptune: skeleton, first chorus lead, chart sizes 1`
   "bpm": 140,
   "charts": [
     {
-      "holds": 3,
-      "notes": 67,
-    },
-    {
-      "holds": 18,
+      "holds": 4,
       "notes": 93,
     },
     {
-      "holds": 32,
-      "notes": 270,
+      "holds": 16,
+      "notes": 128,
     },
     {
-      "holds": 81,
-      "notes": 254,
+      "holds": 35,
+      "notes": 377,
+    },
+    {
+      "holds": 98,
+      "notes": 360,
     },
   ],
   "lead": [
@@ -62,7 +62,7 @@ exports[`friday snapshot > chiptune: skeleton, first chorus lead, chart sizes 1`
   },
   "root": 47,
   "scale": "minor",
-  "total": 56,
+  "total": 74,
 }
 `;
 
@@ -71,20 +71,20 @@ exports[`friday snapshot > lofi: skeleton, first chorus lead, chart sizes 1`] = 
   "bpm": 86,
   "charts": [
     {
-      "holds": 3,
-      "notes": 47,
+      "holds": 4,
+      "notes": 93,
     },
     {
-      "holds": 12,
-      "notes": 66,
+      "holds": 16,
+      "notes": 127,
     },
     {
-      "holds": 22,
-      "notes": 190,
+      "holds": 35,
+      "notes": 370,
     },
     {
-      "holds": 57,
-      "notes": 179,
+      "holds": 98,
+      "notes": 349,
     },
   ],
   "lead": [
@@ -128,7 +128,7 @@ exports[`friday snapshot > lofi: skeleton, first chorus lead, chart sizes 1`] = 
   },
   "root": 47,
   "scale": "minor",
-  "total": 40,
+  "total": 74,
 }
 `;
 
@@ -137,20 +137,20 @@ exports[`friday snapshot > synthwave: skeleton, first chorus lead, chart sizes 1
   "bpm": 118,
   "charts": [
     {
-      "holds": 3,
-      "notes": 67,
-    },
-    {
-      "holds": 18,
+      "holds": 4,
       "notes": 93,
     },
     {
-      "holds": 32,
-      "notes": 271,
+      "holds": 16,
+      "notes": 129,
     },
     {
-      "holds": 81,
-      "notes": 255,
+      "holds": 35,
+      "notes": 379,
+    },
+    {
+      "holds": 98,
+      "notes": 356,
     },
   ],
   "lead": [
@@ -194,7 +194,7 @@ exports[`friday snapshot > synthwave: skeleton, first chorus lead, chart sizes 1
   },
   "root": 47,
   "scale": "minor",
-  "total": 56,
+  "total": 74,
 }
 `;
 
@@ -203,20 +203,20 @@ exports[`friday snapshot > techno: skeleton, first chorus lead, chart sizes 1`] 
   "bpm": 124,
   "charts": [
     {
-      "holds": 3,
-      "notes": 67,
+      "holds": 4,
+      "notes": 93,
     },
     {
-      "holds": 18,
-      "notes": 92,
+      "holds": 16,
+      "notes": 127,
     },
     {
-      "holds": 32,
-      "notes": 266,
+      "holds": 35,
+      "notes": 367,
     },
     {
-      "holds": 81,
-      "notes": 253,
+      "holds": 98,
+      "notes": 346,
     },
   ],
   "lead": [
@@ -260,6 +260,6 @@ exports[`friday snapshot > techno: skeleton, first chorus lead, chart sizes 1`] 
   },
   "root": 47,
   "scale": "minor",
-  "total": 56,
+  "total": 74,
 }
 `;

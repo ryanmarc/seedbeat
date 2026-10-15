@@ -16,6 +16,23 @@ export const FRIDAY: CuratedSong = {
   transpose: 12,
   // Four on the floor, claps on 2 and 4, hats on the offbeats (drum stem).
   drums: { kick: 'x...x...x...x...', snare: '....x.......x...', hat: '..x...x...x...x.' },
+  // The record's shape: quiet intro, first drop, break, main drop, break, lighter vocal
+  // section, final drop, short outro (74 bars ≈ 143 s at 124 BPM).
+  sections: [
+    ['intro', 4],
+    ['chorus', 8],
+    ['verse', 4],
+    ['bridge', 2],
+    ['chorus', 8],
+    ['chorus', 8],
+    ['verse', 4],
+    ['bridge', 4],
+    ['bridge', 8],
+    ['chorus', 8],
+    ['chorus', 8],
+    ['verse', 4],
+    ['outro', 4],
+  ],
   // Bass stem, 2-bar figure in absolute pitches.
   bass: [
     '.   B1  -   .   .   .   .   F#1 -   .   F#2 -   .   F#2 -   .',

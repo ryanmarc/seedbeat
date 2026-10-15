@@ -74,14 +74,33 @@ describe('curated songs', () => {
     expect(makeSong('friday', 'synthwave', 'song').bpm).toBe(118);
     expect(makeSong('friday', 'chiptune', 'song').bpm).toBe(140);
   });
-  it('the section walk uses the curated bar length', () => {
-    const s = makeSong('friday', 'techno', 'song');
-    expect(s.total).toBe(56); // 124 BPM: target 54 bars → all seven sections (52) + outro
-  });
   it('non-curated seeds are untouched', () => {
     const s = makeSong('amber-11', 'lofi', 'song');
     expect(s.curated).toBeNull();
     expect(s.bpm).toBe(71);
     expect(s.name).toBe('Paper Sunday');
+  });
+});
+
+describe('curated arrangement', () => {
+  it('a curated section list replaces the walk and ignores the 105 s target', () => {
+    const s = makeSong('friday', 'techno', 'song');
+    expect(s.sections.map((x) => `${x.type}:${x.len}@${x.start}`)).toEqual([
+      'intro:4@0',
+      'chorus:8@4',
+      'verse:4@12',
+      'bridge:2@16',
+      'chorus:8@18',
+      'chorus:8@26',
+      'verse:4@34',
+      'bridge:4@38',
+      'bridge:8@42',
+      'chorus:8@50',
+      'chorus:8@58',
+      'verse:4@66',
+      'outro:4@70',
+    ]);
+    expect(s.total).toBe(74);
+    expect(makeSong('friday', 'techno', 'endless').total).toBeNull();
   });
 });
