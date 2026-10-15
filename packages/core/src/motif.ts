@@ -20,7 +20,7 @@ export interface MotifNote {
 export interface Motif {
   notes: MotifNote[];
   /** Bars the motif spans; the bar index within a section selects the slice (`barIn % bars`). */
-  bars: 2 | 4;
+  bars: number;
   /** Authored (curated) motifs skip chord-tone snapping. */
   authored: boolean;
 }
@@ -103,6 +103,20 @@ function authoredMotif(s: Song, type: SectionType): Motif | null {
   // P must be parsed against root + 24; the entry's transpose lowers that reference so the
   // same written note plays higher.
   const parsed = parseMelody(bars, SCALES[c.scale], c.root + 24 - (c.transpose ?? 0));
+  const motif: Motif = { notes: parsed.notes, bars: parsed.bars, authored: true };
+  s.motifs.set(key, motif);
+  return motif;
+}
+
+/** The curated bass figure (1–4 bars, absolute pitches), memoised under `authored:bass`. */
+export function authoredBass(s: Song): Motif | null {
+  const c = s.curated;
+  if (!c?.bass) return null;
+  const key = 'authored:bass';
+  const cached = s.motifs.get(key);
+  if (cached) return cached;
+  // Bass sounds at D(deg) - 12 in bars.ts, so parse against root - 12.
+  const parsed = parseMelody(c.bass, SCALES[c.scale], c.root - 12, [1, 2, 4]);
   const motif: Motif = { notes: parsed.notes, bars: parsed.bars, authored: true };
   s.motifs.set(key, motif);
   return motif;

@@ -62,8 +62,8 @@ describe('parseMelody', () => {
   it('accepts 4 bars and rejects other lengths', () => {
     const bar = 'B3 . . . . . . . . . . . . . . .';
     expect(parseMelody([bar, bar, bar, bar], MINOR, B2).bars).toBe(4);
-    expect(() => parseMelody([bar], MINOR, B2)).toThrow('2 or 4 bars');
-    expect(() => parseMelody([bar, bar, bar], MINOR, B2)).toThrow('2 or 4 bars');
+    expect(() => parseMelody([bar], MINOR, B2)).toThrow('2 or 4 or 8 bars');
+    expect(() => parseMelody([bar, bar, bar], MINOR, B2)).toThrow('2 or 4 or 8 bars');
   });
   it('reports the bar and step of a bad token or a stray dash', () => {
     const ok = 'B3 . . . . . . . . . . . . . . .';

@@ -1,5 +1,5 @@
 import { DRUMS, SECT, patternHit, type DrumMode, type SectionType } from './moods';
-import { getMotif } from './motif';
+import { authoredBass, getMotif } from './motif';
 import { rngFor } from './rng';
 import { degToMidi, snap } from './theory';
 import { sectionFor, type SectionInfo, type Song } from './song';
@@ -177,8 +177,14 @@ export function getBar(s: Song, bar: number): Bar {
   const bmAt = (i: number): number => D(chordAt(i)) - 12;
   const b5At = (i: number): number => D(chordAt(i) + 4) - 12;
   if (sec.type !== 'intro' || mk === 'techno') {
+    const ab = authoredBass(s);
     if (isEnd) {
       add(0, { type: 'bass', midi: D(0) - 12, len: 12 });
+    } else if (ab) {
+      const h = (sec.barIn % ab.bars) * 16;
+      for (const n of ab.notes)
+        if (n.step >= h && n.step < h + 16)
+          add(n.step - h, { type: 'bass', midi: D(n.deg) - 12 + (n.alt ?? 0), len: n.len });
     } else if (mk === 'lofi') {
       add(0, { type: 'bass', midi: bmAt(0), len: 6 });
       const at = r.pick([6, 10]);

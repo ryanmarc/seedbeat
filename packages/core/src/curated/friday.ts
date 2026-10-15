@@ -16,6 +16,11 @@ export const FRIDAY: CuratedSong = {
   transpose: 12,
   // Four on the floor, claps on 2 and 4, hats on the offbeats (drum stem).
   drums: { kick: 'x...x...x...x...', snare: '....x.......x...', hat: '..x...x...x...x.' },
+  // Bass stem, 2-bar figure in absolute pitches.
+  bass: [
+    '.   B1  -   .   .   .   .   F#1 -   .   F#2 -   .   F#2 -   .',
+    '.   .   G1  .   .   .   .   D2  -   .   D2  -   .   D2  -   .',
+  ],
   // Two chords per bar, a 2-bar loop: Bm | F# ‖ G | D.
   progs: {
     chorus: [

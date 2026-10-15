@@ -39,3 +39,20 @@ describe('authored drums', () => {
     expect(getBar(s, bridge).ev.filter((e) => e.type === 'kick')).toHaveLength(0);
   });
 });
+
+describe('authored bass', () => {
+  it('friday plays the measured 2-bar figure in every mood', () => {
+    for (const mood of ['lofi', 'synthwave', 'chiptune', 'techno'] as const) {
+      const s = makeSong('friday', mood, 'song');
+      const chorus = s.sections.find((x) => x.type === 'chorus')!.start;
+      const bass = (bar: number): string[] =>
+        getBar(s, bar)
+          .ev.filter((e) => e.type === 'bass')
+          .map((e) => `${e.step}:${e.midi}:${e.len}`);
+      // B1 - · F#1 - · F#2 - · F#2 -
+      expect(bass(chorus)).toEqual(['1:35:2', '7:30:2', '10:42:2', '13:42:2']);
+      // G1 (lone token: sounds to the next onset) · D2 - · D2 - · D2 -
+      expect(bass(chorus + 1)).toEqual(['2:31:5', '7:38:2', '10:38:2', '13:38:2']);
+    }
+  });
+});

@@ -24,6 +24,8 @@ export interface CuratedSong {
    * around two octaves above the root). Default 0.
    */
   transpose?: number;
+  /** 1–4 bars of bass tokens (absolute note names, `.`, `-`), looping by bar within a section. */
+  bass?: readonly string[];
   /** 16-step drum patterns (`x` hit, `o` soft, `.` rest) replacing the mood's picks in every mood. */
   drums?: { kick?: string; snare?: string; hat?: string };
   /**
@@ -106,9 +108,10 @@ export function parseMelody(
   bars: readonly string[],
   scale: Scale,
   root: number,
-): { notes: AuthoredNote[]; bars: 2 | 4 } {
-  if (bars.length !== 2 && bars.length !== 4)
-    throw new Error(`melody must be 2 or 4 bars, got ${bars.length}`);
+  allowed: readonly number[] = [2, 4, 8],
+): { notes: AuthoredNote[]; bars: number } {
+  if (!allowed.includes(bars.length))
+    throw new Error(`melody must be ${allowed.join(' or ')} bars, got ${bars.length}`);
   const onsets: { step: number; midi: number; sounding: number }[] = [];
   bars.forEach((bar, b) => {
     const tokens = bar.trim().split(/\s+/);
@@ -147,5 +150,5 @@ export function parseMelody(
     const lane = mx === mn ? i % 4 : Math.round(((o.midi - mn) / (mx - mn)) * 3);
     return { step: o.step, deg, alt, len, lane };
   });
-  return { notes, bars: bars.length as 2 | 4 };
+  return { notes, bars: bars.length };
 }
