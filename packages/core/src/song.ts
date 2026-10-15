@@ -8,6 +8,7 @@ import {
 } from './moods';
 import { rngFor } from './rng';
 import { SCALES, type Scale, type ScaleName } from './theory';
+import { canonicalSeed, findCurated, tempoFor, type CuratedSong } from './curated';
 import type { Bar } from './bars';
 import type { Motif } from './motif';
 
@@ -49,6 +50,8 @@ export interface Song {
   pat: { kick: number; kick2: number; snare: number; hat: number };
   stab: readonly number[];
   name: string;
+  /** The curated entry behind this seed, or null for procedural songs. */
+  curated: CuratedSong | null;
   /** Song mode section list; empty for endless. */
   sections: SongSection[];
   /** Total bars in Song mode; null for endless. */
@@ -82,21 +85,30 @@ const TRANSPOSE = [0, 2, 5, -2, 3, -4] as const;
 /** Builds the song skeleton. Draw order is frozen for generator v1. */
 export function makeSong(seed: string, mood: MoodId, mode: Mode): Song {
   const m = MOODS[mood];
-  const r = rngFor(seed, mood, 'song');
-  const bpm = r.int(m.bpm[0], m.bpm[1]);
-  const scaleName = r.pick(m.scales);
-  const root = r.int(m.root[0], m.root[1]);
+  const curated = findCurated(seed);
+  const key = curated ? canonicalSeed(seed) : seed;
+  const r = rngFor(key, mood, 'song');
+  // Procedural draws, in the frozen v1 order. Curated songs keep every draw and overlay values.
+  const bpm0 = r.int(m.bpm[0], m.bpm[1]);
+  const scale0 = r.pick(m.scales);
+  const root0 = r.int(m.root[0], m.root[1]);
+  const bpm = curated ? tempoFor(curated, mood) : bpm0;
+  const scaleName: ScaleName = curated ? curated.scale : scale0;
+  const root = curated ? curated.root : root0;
   const sd = 60 / bpm / 4;
   const barDur = sd * 16;
-  const verse = r.pick(m.progs);
-  const chorus = r.pick(m.progs);
-  const bridge = r.pick(m.progs);
+  const verse0 = r.pick(m.progs);
+  const chorus0 = r.pick(m.progs);
+  const bridge0 = r.pick(m.progs);
+  const verse = curated?.progs.verse ?? verse0;
+  const chorus = curated?.progs.chorus ?? chorus0;
+  const bridge = curated?.progs.bridge ?? bridge0;
   const progs: Record<SectionType, Progression> = {
     verse,
     chorus,
     bridge,
-    intro: verse,
-    outro: chorus,
+    intro: curated?.progs.intro ?? verse,
+    outro: curated?.progs.outro ?? chorus,
   };
   const dk = DRUMS[mood];
   const pat = {
@@ -111,7 +123,8 @@ export function makeSong(seed: string, mood: MoodId, mode: Mode): Song {
     [2, 7, 10, 14],
     [6, 14],
   ]);
-  const name = r.pick(m.words.a) + ' ' + r.pick(m.words.n);
+  const name0 = r.pick(m.words.a) + ' ' + r.pick(m.words.n);
+  const name = curated ? curated.title : name0;
 
   const sections: SongSection[] = [];
   let total: number | null = null;
@@ -128,7 +141,7 @@ export function makeSong(seed: string, mood: MoodId, mode: Mode): Song {
   }
 
   return {
-    seed,
+    seed: key,
     mood,
     m,
     mode,
@@ -143,6 +156,7 @@ export function makeSong(seed: string, mood: MoodId, mode: Mode): Song {
     pat,
     stab,
     name,
+    curated,
     sections,
     total,
     bars: new Map(),

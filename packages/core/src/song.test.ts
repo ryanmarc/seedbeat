@@ -50,3 +50,38 @@ describe('song', () => {
     expect(stepTime(s, 0, 1.5)).toBeCloseTo(s.sd * 1.5, 12);
   });
 });
+
+describe('curated songs', () => {
+  it('friday overlays tempo, key, progressions and title, in any letter case', () => {
+    const a = makeSong('friday', 'techno', 'song');
+    const b = makeSong('FRIDAY', 'techno', 'song');
+    expect(a.curated?.title).toBe('Friday');
+    expect(a.seed).toBe('friday');
+    expect(b.seed).toBe('friday');
+    expect(a.bpm).toBe(124); // 123 reference clamped into techno's 124–136
+    expect(a.scaleName).toBe('minor');
+    expect(a.root).toBe(47);
+    expect(a.name).toBe('Friday');
+    expect(a.progs.chorus).toEqual([0, 0, 0, 5]);
+    expect(a.progs.intro).toEqual(a.progs.verse);
+    expect(a.progs.outro).toEqual(a.progs.chorus);
+    expect(a.sd).toBeCloseTo(60 / 124 / 4, 12);
+    expect(a.pat).toEqual(b.pat); // procedural picks keyed by the canonical seed
+    expect(a.sections).toEqual(b.sections);
+  });
+  it('clamps the tempo into each mood range', () => {
+    expect(makeSong('friday', 'lofi', 'song').bpm).toBe(86);
+    expect(makeSong('friday', 'synthwave', 'song').bpm).toBe(118);
+    expect(makeSong('friday', 'chiptune', 'song').bpm).toBe(140);
+  });
+  it('the section walk uses the curated bar length', () => {
+    const s = makeSong('friday', 'techno', 'song');
+    expect(s.total).toBe(56); // 124 BPM: target 54 bars → all seven sections (52) + outro
+  });
+  it('non-curated seeds are untouched', () => {
+    const s = makeSong('amber-11', 'lofi', 'song');
+    expect(s.curated).toBeNull();
+    expect(s.bpm).toBe(71);
+    expect(s.name).toBe('Paper Sunday');
+  });
+});
