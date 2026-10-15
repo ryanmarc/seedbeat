@@ -180,8 +180,11 @@ describe('generator v1 invariants', () => {
         fc.property(arbSeed, arbMood, (seed, mood) => {
           const s = makeSong(seed, mood, 'song');
           const dur = s.total! * s.barDur;
-          expect(dur).toBeGreaterThanOrEqual(80);
-          expect(dur).toBeLessThanOrEqual(130);
+          // Curated songs author their own arrangement and ignore the length target.
+          if (!s.curated) {
+            expect(dur).toBeGreaterThanOrEqual(80);
+            expect(dur).toBeLessThanOrEqual(130);
+          }
           expect(s.sections[0]!.type).toBe('intro');
           expect(s.sections.at(-1)!.type).toBe('outro');
         }),

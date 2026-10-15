@@ -5,7 +5,7 @@ import type { CuratedSong } from './build';
  * Melodies transcribed from the separated vocal stem (pyin, 16th grid, 2026-10-15); edit the
  * bar strings to correct notes. Tokens: note name, `.` rest, `-` extend the previous note.
  * Chorus = the main hook (track bars 11–18), verse = the second phrase (19–22),
- * bridge = the middle-section vocal line (51–58). Intro reuses verse, outro reuses chorus.
+ * bridge = the middle-section vocal line (51–58), intro/outro = the chopped-vocal riff.
  */
 export const FRIDAY: CuratedSong = {
   title: 'Friday',
@@ -54,21 +54,34 @@ export const FRIDAY: CuratedSong = {
     ],
   },
   melody: {
-    // Main hook, track bars 11–14 (repeats 15–18 with small variations).
+    // Chopped-vocal riff (the "answer"): alone in the intro and outro, and in the hook's rests.
+    intro: [
+      '.   .   .   .   .   .   .   .   .   .   B3  C#4 C#4 B3  C#4 C#4',
+      'B3  B3  B3  .   .   .   .   .   .   B3  .   .   .   B3  C#4 C#4',
+    ],
+    outro: [
+      '.   .   .   .   .   .   .   .   .   .   B3  C#4 C#4 B3  C#4 C#4',
+      'B3  B3  B3  .   .   .   .   .   .   B3  .   .   .   B3  C#4 C#4',
+    ],
+    // Hook, track bars 11–18 (vocal stem), with the riff answering in the rests.
     chorus: [
       '.   .   .   .   .   .   .   F#4 E4  -   D4  .   .   C#4 D4  -',
       '.   E4  -   .   B3  C#4 -   B3  A3  -   .   A3  -   B3  -   -',
-      '.   .   .   .   A3  -   -   .   .   A4  .   .   .   .   .   F#4',
-      'F#4 D4  -   E4  -   D4  -   .   .   .   .   .   D4  E4  -   .',
+      '.   .   .   .   A3  -   -   .   .   A4  B3  C#4 C#4 B3  .   F#4',
+      'F#4 D4  -   E4  -   D4  -   .   .   B3  .   .   D4  E4  -   .',
+      '.   .   .   .   .   .   .   .   E4  -   D4  -   B3  C#4 .   .',
+      '.   E4  -   .   .   C#4 B3  -   .   A3  .   A3  -   .   B3  .',
+      '.   .   .   .   .   .   A3  -   .   .   B3  C#4 C#4 E4  -   F#4',
+      '.   .   .   .   .   .   .   .   B3  -   .   .   .   B3  C#4 C#4',
     ],
-    // Second phrase, track bars 19–22.
+    // Second phrase, track bars 19–22, riff answers in the rests.
     verse: [
       '.   C#4 -   .   .   C#4 .   .   .   B3  -   .   .   F#4 -   .',
       '.   C#4 -   -   B3  .   A3  -   -   .   .   .   .   F#4 -   -',
-      '.   .   C#4 -   -   -   .   .   .   .   B3  .   .   .   .   .',
+      '.   .   C#4 -   -   -   .   .   .   .   B3  .   .   B3  C#4 C#4',
       '.   F#4 -   .   C#4 -   -   -   .   A3  -   -   .   A3  -   .',
     ],
-    // Middle-section vocal line, track bars 51–54 (repeats 55–58 sparser).
+    // Middle-section vocal line, track bars 51–54.
     bridge: [
       '.   .   .   .   .   E4  .   .   .   .   .   C#4 .   .   C#4 .',
       '.   C#4 D4  .   .   D4  -   .   .   .   .   .   .   .   .   .',
