@@ -18,6 +18,7 @@ const arbSeed = fc.oneof(
   fc
     .tuple(fc.constantFrom('amber', 'cobalt', 'orbit', 'signal', 'echo', 'prism'), fc.nat(99))
     .map(([w, n]) => `${w}-${n}`),
+  fc.constantFrom('friday', 'Friday', ' FRIDAY '),
 );
 const arbMood = fc.constantFrom<MoodId>(...MOOD_IDS);
 const arbMode = fc.constantFrom<Mode>('song', 'endless');

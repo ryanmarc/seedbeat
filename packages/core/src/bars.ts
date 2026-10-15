@@ -44,6 +44,8 @@ export interface LeadNote {
   deg: number;
   len: number;
   lane: number;
+  /** Semitone offset for authored chromatic notes; absent for procedural notes. */
+  alt?: number;
 }
 
 export interface Bar {
@@ -84,17 +86,20 @@ export function getBar(s: Song, bar: number): Bar {
 
   // ---- lead
   const mot = getMotif(s, sec.type, sec.cycle);
-  const half = (sec.barIn % 2) * 16;
+  const half = (sec.barIn % mot.bars) * 16;
   const chordTones = (m.sevenths ? [0, 2, 4, 6] : [0, 2, 4]).map((x) => cd + x);
   let lead: LeadNote[] = [];
   for (const n of mot.notes) {
     if (n.step < half || n.step >= half + 16) continue;
     let deg = n.deg;
-    if (n.step % 4 === 0) deg = snap(deg, chordTones);
-    lead.push({ step: n.step - half, deg, len: n.len, lane: n.lane });
+    if (!mot.authored && n.step % 4 === 0) deg = snap(deg, chordTones);
+    const ln: LeadNote = { step: n.step - half, deg, len: n.len, lane: n.lane };
+    if (n.alt) ln.alt = n.alt; // only authored chromatic notes carry the key (golden parity)
+    lead.push(ln);
   }
   if (isEnd) lead = [{ step: 0, deg: 7, len: 14, lane: 1 }];
-  for (const n of lead) add(n.step, { type: 'lead', midi: D(n.deg) + 24, len: n.len, acc: r.f() });
+  for (const n of lead)
+    add(n.step, { type: 'lead', midi: D(n.deg) + 24 + (n.alt ?? 0), len: n.len, acc: r.f() });
 
   // ---- drums
   const dk = DRUMS[mk];

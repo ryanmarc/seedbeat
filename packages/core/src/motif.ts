@@ -1,12 +1,16 @@
+import { parseMelody } from './curated/build';
 import { SECT, type SectionType } from './moods';
 import { rngFor } from './rng';
 import type { Song } from './song';
+import { SCALES } from './theory';
 
 export interface MotifNote {
-  /** 0–31 across the motif's two bars. */
+  /** 0–31 across the motif's two bars (0–63 for a 4-bar authored motif). */
   step: number;
   /** Scale degree (relative to the key root, may be negative). */
   deg: number;
+  /** Semitone offset above the degree (authored chromatic notes); absent = 0. */
+  alt?: number;
   /** Gap to the next onset in steps (capped at 12), or a short staccato length. */
   len: number;
   /** Lane 0–3 from the note's pitch position within the motif's range. */
@@ -15,12 +19,21 @@ export interface MotifNote {
 
 export interface Motif {
   notes: MotifNote[];
+  /** Bars the motif spans; the bar index within a section selects the slice (`barIn % bars`). */
+  bars: 2 | 4;
+  /** Authored (curated) motifs skip chord-tone snapping. */
+  authored: boolean;
 }
+
+/** Section types that borrow another's authored melody when their own is missing. */
+const FALLBACK: Partial<Record<SectionType, SectionType>> = { intro: 'verse', outro: 'chorus' };
 
 const MOVES = [-2, -1, -1, 0, 1, 1, 2, 3, -3, 4] as const;
 
 /** One 2-bar melody per (section type, endless cycle). Memoised on the song. */
 export function getMotif(s: Song, type: SectionType, cycle: number): Motif {
+  const authored = authoredMotif(s, type);
+  if (authored) return authored;
   const key = type + cycle;
   const cached = s.motifs.get(key);
   if (cached) return cached;
@@ -71,7 +84,24 @@ export function getMotif(s: Song, type: SectionType, cycle: number): Motif {
     n.lane = mx === mn ? i % 4 : Math.round(((n.deg - mn) / (mx - mn)) * 3);
   }
 
-  const motif: Motif = { notes };
+  const motif: Motif = { notes, bars: 2, authored: false };
+  s.motifs.set(key, motif);
+  return motif;
+}
+
+/** The curated melody for `type` (or its fallback type), memoised under `authored:<type>`. */
+function authoredMotif(s: Song, type: SectionType): Motif | null {
+  const c = s.curated;
+  if (!c) return null;
+  const use = c.melody[type] ? type : FALLBACK[type];
+  const bars = use ? c.melody[use] : undefined;
+  if (!use || !bars) return null;
+  const key = 'authored:' + use;
+  const cached = s.motifs.get(key);
+  if (cached) return cached;
+  // Lead degrees sound two octaves above the root (bars.ts adds 24), so parse against root + 24.
+  const parsed = parseMelody(bars, SCALES[c.scale], c.root + 24);
+  const motif: Motif = { notes: parsed.notes, bars: parsed.bars, authored: true };
   s.motifs.set(key, motif);
   return motif;
 }
