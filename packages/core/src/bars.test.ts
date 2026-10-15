@@ -56,3 +56,13 @@ describe('authored bass', () => {
     }
   });
 });
+
+describe('authored bass and break bars', () => {
+  it('techno keeps its break-bar drone under an authored bass, so the downbeat still sounds', () => {
+    const s = makeSong('friday', 'techno', 'song');
+    const bridge = s.sections.find((x) => x.type === 'bridge')!.start;
+    const b = getBar(s, bridge + 1);
+    expect(b.ev.some((e) => e.type === 'drone' && e.step === 0)).toBe(true);
+    expect(b.ev.filter((e) => e.type === 'bass').length).toBeGreaterThan(0);
+  });
+});

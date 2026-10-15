@@ -181,6 +181,12 @@ export function getBar(s: Song, bar: number): Bar {
     if (isEnd) {
       add(0, { type: 'bass', midi: D(0) - 12, len: 12 });
     } else if (ab) {
+      // The authored figure replaces the mood's bass; techno's break-bar drone stays under it.
+      if (
+        mk === 'techno' &&
+        (mode === 'break' || (mode === 'light' && sec.type === 'intro' && sec.barIn < 2))
+      )
+        add(0, { type: 'drone', midi: bmAt(0), len: 16 });
       const h = (sec.barIn % ab.bars) * 16;
       for (const n of ab.notes)
         if (n.step >= h && n.step < h + 16)
