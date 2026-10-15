@@ -123,9 +123,11 @@ export function getBar(s: Song, bar: number): Bar {
 
   // ---- drums
   const dk = DRUMS[mk];
-  const kp = dk.kick[sec.type === 'chorus' ? s.pat.kick2 : s.pat.kick]!;
-  const sp = dk.snare[s.pat.snare]!;
-  const hp = dk.hat[sec.type === 'chorus' ? (s.pat.hat + 1) % dk.hat.length : s.pat.hat]!;
+  const ad = s.curated?.drums;
+  const kp = ad?.kick ?? dk.kick[sec.type === 'chorus' ? s.pat.kick2 : s.pat.kick]!;
+  const sp = ad?.snare ?? dk.snare[s.pat.snare]!;
+  const hp =
+    ad?.hat ?? dk.hat[sec.type === 'chorus' ? (s.pat.hat + 1) % dk.hat.length : s.pat.hat]!;
   if (!isEnd) {
     for (let i = 0; i < 16; i++) {
       const k = patternHit(kp, i);

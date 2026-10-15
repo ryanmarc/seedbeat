@@ -24,3 +24,18 @@ describe('half-bar chords', () => {
     expect(new Set(arps).size).toBe(3); // one triad across the whole bar
   });
 });
+
+describe('authored drums', () => {
+  it('friday kicks on every beat and claps on 2 and 4 in lo-fi, which no lo-fi kit does', () => {
+    const s = makeSong('friday', 'lofi', 'song');
+    const chorus = s.sections.find((x) => x.type === 'chorus')!.start;
+    const b = getBar(s, chorus + 1);
+    expect(b.ev.filter((e) => e.type === 'kick').map((e) => e.step)).toEqual([0, 4, 8, 12]);
+    expect(b.ev.filter((e) => e.type === 'snare').map((e) => e.step)).toEqual([4, 12]);
+  });
+  it('a break bar still drops the kicks even with authored drums', () => {
+    const s = makeSong('friday', 'synthwave', 'song');
+    const bridge = s.sections.find((x) => x.type === 'bridge')!.start;
+    expect(getBar(s, bridge).ev.filter((e) => e.type === 'kick')).toHaveLength(0);
+  });
+});

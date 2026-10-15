@@ -24,6 +24,8 @@ export interface CuratedSong {
    * around two octaves above the root). Default 0.
    */
   transpose?: number;
+  /** 16-step drum patterns (`x` hit, `o` soft, `.` rest) replacing the mood's picks in every mood. */
+  drums?: { kick?: string; snare?: string; hat?: string };
   /**
    * Chord degrees per bar, looping by bar within the section. A bar is one degree or a pair
    * (first and second half). Missing types fall back: intro → verse, outro → chorus; otherwise

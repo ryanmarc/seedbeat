@@ -14,6 +14,8 @@ export const FRIDAY: CuratedSong = {
   root: 47, // B2
   // Vocal pitches are written as sung (4th octave); the synth leads sit an octave higher.
   transpose: 12,
+  // Four on the floor, claps on 2 and 4, hats on the offbeats (drum stem).
+  drums: { kick: 'x...x...x...x...', snare: '....x.......x...', hat: '..x...x...x...x.' },
   // Two chords per bar, a 2-bar loop: Bm | F# ‖ G | D.
   progs: {
     chorus: [
