@@ -1,6 +1,5 @@
 /**
- * Tutorial (PRD §3): a scripted lesson over a fixed song. Taps, then chords, then holds with a
- * release, then a stretch of the song's own Easy chart. Hand-authored notes sit on beats, which
+ * Tutorial (PRD §3): a scripted lesson over a fixed song. Taps, then chords, then holds, then a stretch of the song's own Easy chart. Hand-authored notes sit on beats, which
  * every mood's drum pattern marks, so the lesson still follows the music. Pure and deterministic.
  */
 import { buildChart, type ChartNote } from './chart';
@@ -77,7 +76,7 @@ export function tutorialChart(song: Song): TutorialChart {
       { bar: 5, text: 'Chords: two notes arrive together. Tap both lanes at once.' },
       {
         bar: 10,
-        text: 'Holds: press on the head, keep holding, let go when RELEASE reaches the line.',
+        text: 'Holds: press on the head and keep holding. The tail pays out as it reaches the line.',
       },
       { bar: 15, text: 'Now a short stretch of the song. You cannot fail here.' },
     ],

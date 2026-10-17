@@ -5,7 +5,17 @@
 import type { Difficulty, Grade, MoodId, Mode } from '@seedbeat/core';
 
 export const SAVE_VERSION = 1;
-export type LanePalette = 'mood' | 'cb-a' | 'cb-b' | 'high-contrast';
+export type LanePalette = 'mood' | 'cb-a' | 'cb-b' | 'high-contrast' | 'guitar';
+export const LANE_PALETTES: readonly LanePalette[] = [
+  'mood',
+  'cb-a',
+  'cb-b',
+  'high-contrast',
+  'guitar',
+];
+/** Guitar controller: 'strum' needs a strum with the fret held (Guitar Hero); 'tap' treats frets as keys. */
+export type GuitarMode = 'strum' | 'tap';
+export const GUITAR_MODES: readonly GuitarMode[] = ['strum', 'tap'];
 export type QualityMode = 'auto' | 'high' | 'battery';
 export type FrameCap = 'auto' | 60 | 30;
 /** AudioContext buffer: 'low' = interactive (tightest), 'balanced', 'stable' = playback (largest). */
@@ -32,6 +42,7 @@ export interface Settings {
   hitSounds: boolean;
   haptics: boolean;
   keys: [string, string, string, string];
+  guitarMode: GuitarMode;
   reducedMotion: 'system' | 'on' | 'off';
   quality: QualityMode;
   frameCap: FrameCap;
@@ -100,6 +111,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hitSounds: false,
   haptics: true,
   keys: ['KeyD', 'KeyF', 'KeyJ', 'KeyK'],
+  guitarMode: 'strum',
   reducedMotion: 'system',
   quality: 'auto',
   frameCap: 'auto',
@@ -168,6 +180,8 @@ export function migrate(raw: unknown, platform: Partial<Settings> = {}): SaveV1 
   settings.audioOffsetMs = clampNum(settings.audioOffsetMs, -500, 500, 0);
   settings.visualOffsetMs = clampNum(settings.visualOffsetMs, -500, 500, 0);
   if (!NOTE_SKINS.includes(settings.noteSkin)) settings.noteSkin = 'classic';
+  if (!LANE_PALETTES.includes(settings.lanePalette)) settings.lanePalette = 'mood';
+  if (!GUITAR_MODES.includes(settings.guitarMode)) settings.guitarMode = 'strum';
   if (!HIGHWAY_STYLES.includes(settings.highwayStyle)) settings.highwayStyle = 'default';
   if (!AUDIO_BUFFERS.includes(settings.audioBuffer)) settings.audioBuffer = 'low';
   const profile = isObject(r.profile)

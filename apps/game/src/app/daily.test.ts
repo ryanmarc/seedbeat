@@ -148,8 +148,8 @@ describe('achievements', () => {
 describe('haptics', () => {
   it('maps judgements to pulses and throttles to one per 40 ms', () => {
     expect(hapticFor('perfect')).toBe('light');
-    expect(hapticFor('rgood')).toBe('soft');
-    expect(hapticFor('drop')).toBe('miss');
+    expect(hapticFor('good')).toBe('soft');
+    expect(hapticFor('miss')).toBe('miss');
     const calls: (number | number[])[] = [];
     let now = 0;
     const h = new WebHaptics(

@@ -61,6 +61,7 @@ describe('palette', () => {
     expect(paletteFor('synthwave').lane[0]).toBe(0xff3fa4);
     expect(paletteFor('synthwave', 'cb-a').lane).toEqual([0xe69f00, 0x56b4e9, 0x009e73, 0xcc79a7]);
     expect(paletteFor('techno').bg).toBe(0x050507);
+    expect(paletteFor('lofi', 'guitar').lane).toEqual([0x3ddc5a, 0xff3b47, 0xffd60a, 0x3b82ff]);
     expect(mix(0x000000, 0xffffff, 0.5)).toBe(0x808080);
   });
 });

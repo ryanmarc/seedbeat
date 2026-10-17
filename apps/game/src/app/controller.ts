@@ -31,6 +31,9 @@ import { AutoplayBot } from '../engine/bot';
 import { KeyMap } from '../engine/input';
 import { attachInput, pollGamepads } from '../engine/input-dom';
 import { GamepadLanes, type LaneEvent } from '../engine/input';
+import { GuitarLanes } from '../engine/guitar';
+import { GuitarUsb, knownGuitar, requestGuitar, webUsbSupported } from '../engine/input-webusb';
+import { RIFFMASTER_XBOX, type GuitarReport } from '../engine/gip';
 import { GameLoop, summarizeStats } from '../engine/loop';
 import { PlayRun } from '../engine/play';
 import { NO_HAPTICS, WebHaptics, hapticFor, type Haptics } from '../platform/haptics';
@@ -41,7 +44,13 @@ import { Stage } from '../render/stage';
 import type { Scene } from '../render/scene';
 import { TIERS } from '../render/quality';
 import { SaveStore, MemoryKV } from '../save/store';
-import { songKey, starsFor, type AudioBuffer, type Settings } from '../save/schema';
+import {
+  songKey,
+  starsFor,
+  type AudioBuffer,
+  type GuitarMode,
+  type Settings,
+} from '../save/schema';
 import { achievementById, newAchievements, type FinishedRun } from './achievements';
 import { dailySelection, isDaily, nextStreak, utcDay } from './daily';
 import { practiceText, previewStartTime, sectionChoices, sectionText } from './format';
@@ -50,6 +59,7 @@ import {
   audioReady,
   countdown,
   firstSongHint,
+  guitarStatus,
   hudAcc,
   hudHealth,
   hudProgress,
@@ -169,6 +179,10 @@ export class GameController {
   private idleKey = '';
   private readonly keys = new KeyMap();
   private readonly gamepad = new GamepadLanes();
+  private readonly guitar = new GuitarLanes('strum');
+  private guitarUsb: GuitarUsb | null = null;
+  /** Screens outside play (calibration) that want guitar strums as taps. */
+  private readonly guitarTapListeners = new Set<(perfMs: number) => void>();
   private hudKey = '';
   private lastEnded = false;
   private unlisten: (() => void) | null = null;
@@ -195,6 +209,8 @@ export class GameController {
     this.keys.set(1, s.settings.keys[1]);
     this.keys.set(2, s.settings.keys[2]);
     this.keys.set(3, s.settings.keys[3]);
+    this.guitar.setMode(s.settings.guitarMode, 0, () => undefined);
+    void this.initGuitar();
     this.store.subscribe((sv) => {
       saveSignal.value = { ...sv };
       settingsSignal.value = { ...sv.settings };
@@ -705,6 +721,7 @@ export class GameController {
       notes,
     );
     const bot = this.harness.bot ? new AutoplayBot(notes) : null;
+    this.guitar.reset();
     const detach = attachInput(
       {
         canvas: this.canvas!,
@@ -787,9 +804,7 @@ export class GameController {
       const j = ev[c.fedBack]!.judgement;
       if (fromInput && this.settings.hitSounds && this.transport)
         this.transport.hitSound(
-          j === 'miss' || j === 'drop'
-            ? 'miss'
-            : (j.replace(/^r/, '') as 'perfect' | 'great' | 'good'),
+          j === 'miss' ? 'miss' : (j.replace(/^r/, '') as 'perfect' | 'great' | 'good'),
         );
       if (this.settings.haptics) this.haptics.pulse(hapticFor(j));
     }
@@ -827,6 +842,7 @@ export class GameController {
           session: IDLE_SESSION,
           paused: false,
           idle: true,
+          held: this.guitar.held,
         });
         this.stage?.render();
       }
@@ -880,6 +896,7 @@ export class GameController {
       session: c.run.session,
       paused,
       countdown: countdown.value || preCount,
+      held: this.guitar.held,
       ...(p ? { sectionBar: bar } : {}),
     });
     this.stage!.render();
@@ -1169,6 +1186,83 @@ export class GameController {
   /** Heard time (context seconds) of an input at performance ms. */
   heardAt(perfMs: number): number {
     return this.transport?.clock.heardAt(perfMs) ?? 0;
+  }
+
+  /* ----------------------------------------------------------- guitar (WebUSB) */
+  /** Boot: a dongle this origin already has permission for streams without a prompt. */
+  private async initGuitar(): Promise<void> {
+    if (!webUsbSupported()) {
+      guitarStatus.value = 'unsupported';
+      return;
+    }
+    navigator.usb?.addEventListener('connect', (e) => {
+      const d = e.device;
+      if (
+        !this.guitarUsb &&
+        d.vendorId === RIFFMASTER_XBOX.vendorId &&
+        d.productId === RIFFMASTER_XBOX.productId
+      )
+        void this.attachGuitar(d);
+    });
+    const known = await knownGuitar();
+    if (known) await this.attachGuitar(known);
+  }
+
+  /** Settings button: the permission chooser needs a user gesture. */
+  async connectGuitar(): Promise<void> {
+    const device = await requestGuitar();
+    if (!device) return;
+    if (await this.attachGuitar(device)) {
+      showToast(`${device.productName ?? 'Guitar'} connected.`);
+      if (this.settings.lanePalette === 'mood') this.store.setSettings({ lanePalette: 'guitar' });
+    }
+  }
+
+  disconnectGuitar(): void {
+    this.guitarUsb?.stop();
+  }
+
+  private async attachGuitar(device: USBDevice): Promise<boolean> {
+    this.guitarUsb?.stop();
+    const usb = new GuitarUsb(
+      device,
+      (r, perfMs) => this.onGuitarReport(r, perfMs),
+      () => {
+        if (this.guitarUsb === usb) this.guitarUsb = null;
+        this.guitar.reset();
+        guitarStatus.value = 'none';
+      },
+    );
+    try {
+      await usb.start();
+    } catch {
+      showToast('Could not open the guitar. Unplug the dongle, plug it back in and try again.');
+      return false;
+    }
+    this.guitarUsb = usb;
+    guitarStatus.value = 'connected';
+    return true;
+  }
+
+  private onGuitarReport(r: GuitarReport, perfMs: number): void {
+    const tapped = this.guitar.update(
+      r,
+      perfMs,
+      (e) => this.onInput(e),
+      (lane) => this.current?.run.laneContext(lane, perfMs) ?? { holding: false, noteNear: false },
+    );
+    if (tapped && screen.value !== 'playing') for (const fn of this.guitarTapListeners) fn(perfMs);
+  }
+
+  /** A strum (or a fret in tap mode) while not playing. Returns the unsubscribe function. */
+  onGuitarTap(fn: (perfMs: number) => void): () => void {
+    this.guitarTapListeners.add(fn);
+    return () => this.guitarTapListeners.delete(fn);
+  }
+
+  setGuitarMode(mode: GuitarMode): void {
+    this.guitar.setMode(mode, performance.now(), (e) => this.onInput(e));
+    this.store.setSettings({ guitarMode: mode });
   }
 
   /* ----------------------------------------------------------- misc */

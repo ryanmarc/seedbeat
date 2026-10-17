@@ -1,8 +1,8 @@
 import { useState } from 'preact/hooks';
 import { controller } from '../app/controller';
 import { HIGHWAY_LIST, NOTE_SKIN_LIST, unlocked, type Cosmetic } from '../app/progression';
-import { save, settings, showToast } from '../app/state';
-import type { AudioBuffer, FrameCap, LanePalette, QualityMode } from '../save/schema';
+import { guitarStatus, save, settings, showToast } from '../app/state';
+import type { AudioBuffer, FrameCap, GuitarMode, LanePalette, QualityMode } from '../save/schema';
 import { Choice, Range, Screen, Toggle } from './components';
 import { LatencyTest } from './LatencyTest';
 
@@ -57,6 +57,7 @@ const KEY_LABEL = (code: string): string =>
 export function SettingsScreen() {
   const s = settings.value;
   const level = save.value.profile.level;
+  const guitar = guitarStatus.value;
   const set = (patch: Partial<typeof s>): void => controller.store.setSettings(patch);
   const [listening, setListening] = useState<number | null>(null);
   const captureKey = (lane: number): void => {
@@ -126,6 +127,7 @@ export function SettingsScreen() {
           { value: 'cb-a', label: 'CB A' },
           { value: 'cb-b', label: 'CB B' },
           { value: 'high-contrast', label: 'High' },
+          { value: 'guitar', label: 'Guitar' },
         ]}
         onChange={(lanePalette) => set({ lanePalette })}
       />
@@ -261,6 +263,42 @@ export function SettingsScreen() {
           ))}
         </div>
       </div>
+      <div class="setting">
+        <div>
+          <div class="name">Guitar controller</div>
+          <div class="desc">
+            {guitar === 'unsupported'
+              ? 'Xbox Riffmaster over USB needs Chrome or Edge on macOS or Linux.'
+              : guitar === 'connected'
+                ? 'Riffmaster connected. Green, red, yellow and blue are lanes 1–4; orange doubles blue.'
+                : 'Plug in the Xbox Riffmaster dongle, switch the guitar on, then connect.'}
+          </div>
+        </div>
+        {guitar === 'connected' ? (
+          <button type="button" class="btn small" onClick={() => controller.disconnectGuitar()}>
+            Disconnect
+          </button>
+        ) : (
+          <button
+            type="button"
+            class="btn small"
+            disabled={guitar === 'unsupported'}
+            onClick={() => void controller.connectGuitar()}
+          >
+            Connect guitar
+          </button>
+        )}
+      </div>
+      <Choice<GuitarMode>
+        label="Guitar notes"
+        desc="Strum: hold the fret and strum, like Guitar Hero. Tap: frets alone hit notes."
+        value={s.guitarMode}
+        options={[
+          { value: 'strum', label: 'Strum' },
+          { value: 'tap', label: 'Tap' },
+        ]}
+        onChange={(mode) => controller.setGuitarMode(mode)}
+      />
       <h3>Display</h3>
       <Choice
         label="Reduced motion"

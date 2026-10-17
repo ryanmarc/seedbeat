@@ -7,6 +7,7 @@ import {
   ReplayRecorder,
   createSession,
   dropHolds,
+  noteNear,
   press,
   release,
   update,
@@ -68,7 +69,16 @@ export class PlayRun {
     else release(this.session, e.lane, t);
   }
 
-  /** Pause: active holds are dropped (TIMING.md §4). */
+  /** Chart context at an input's timestamp (guitar strum rules): hold active, next note due. */
+  laneContext(lane: number, perfMs: number): { holding: boolean; noteNear: boolean } {
+    const s = this.session;
+    return {
+      holding: !!s.holds[lane],
+      noteNear: noteNear(s, lane, this.clock.songTime(perfMs)),
+    };
+  }
+
+  /** Pause: active sustains end here and pay what was held (TIMING.md §4). */
   pause(): void {
     dropHolds(this.session, this.lastFrameSongTime);
     this.clock.reset();

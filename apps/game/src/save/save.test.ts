@@ -20,6 +20,14 @@ describe('save schema', () => {
     expect(m.bests['k']?.score).toBe(1);
     expect(m.profile.level).toBe(1);
   });
+  it('validates the guitar mode and lane palette', () => {
+    expect(migrate({ v: 1, settings: { guitarMode: 'tap' } }).settings.guitarMode).toBe('tap');
+    expect(migrate({ v: 1, settings: { guitarMode: 'x' } }).settings.guitarMode).toBe('strum');
+    expect(migrate({ v: 1, settings: { lanePalette: 'guitar' } }).settings.lanePalette).toBe(
+      'guitar',
+    );
+    expect(migrate({ v: 1, settings: { lanePalette: 'nope' } }).settings.lanePalette).toBe('mood');
+  });
   it('song keys and stars', () => {
     expect(songKey(1, 'lofi', 'song', 2, 'amber-11')).toBe('1:lofi:song:2:amber-11');
     expect(starsFor('B', false, false, false)).toBe(1);

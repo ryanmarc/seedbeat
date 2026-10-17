@@ -17,7 +17,7 @@ function colour(j: string): string {
 export function TimingGraph({ events, duration }: { events: JudgementEvent[]; duration: number }) {
   const W = 520;
   const H = 150;
-  const hits = events.filter((e) => e.judgement !== 'miss' && e.judgement !== 'drop');
+  const hits = events.filter((e) => e.judgement !== 'miss');
   const y = (ms: number): number =>
     H / 2 - (Math.max(-LIMIT, Math.min(LIMIT, ms)) / LIMIT) * (H / 2 - 8);
   return (
@@ -53,7 +53,7 @@ export function Histogram({ events }: { events: JudgementEvent[] }) {
   const bins = 18;
   const counts = new Array<number>(bins).fill(0);
   for (const e of events) {
-    if (e.judgement === 'miss' || e.judgement === 'drop') continue;
+    if (e.judgement === 'miss') continue;
     const ms = Math.max(-LIMIT, Math.min(LIMIT - 0.001, e.dt * 1000));
     counts[Math.floor(((ms + LIMIT) / (2 * LIMIT)) * bins)]!++;
   }

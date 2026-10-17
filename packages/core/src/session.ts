@@ -5,13 +5,11 @@ import {
   HEALTH,
   MISS_GRACE,
   SCORE,
-  RELEASE_WINDOWS,
+  SUSTAIN_SCORE,
   WINDOWS,
   gradeFor,
   isBreak,
-  isRelease,
   judgeHit,
-  judgeRelease,
   multiplier,
   type Grade,
   type Judgement,
@@ -21,7 +19,10 @@ export interface SessionNote extends ChartNote {
   judged: Judgement | null;
   holding: boolean;
   done: boolean;
-  dropped: boolean;
+  /** Holds: song time the sustain ended (the tail when fully held, earlier when let go). */
+  heldTo: number;
+  /** Holds: multiplier locked at the head hit, so the payout does not depend on frame timing. */
+  sustainMult: number;
 }
 
 export interface SessionOptions {
@@ -98,7 +99,8 @@ function toSessionNote(n: ChartNote): SessionNote {
     judged: null,
     holding: false,
     done: false,
-    dropped: false,
+    heldTo: 0,
+    sustainMult: 1,
   };
 }
 
@@ -124,8 +126,7 @@ function register(s: SessionState, j: Judgement, lane: number, dt: number, t: nu
   } else {
     s.combo++;
     if (s.combo > s.maxCombo) s.maxCombo = s.combo;
-    const base = isRelease(j) ? j.slice(1) : j;
-    s.counts[base as 'perfect' | 'great' | 'good']++;
+    s.counts[j]++;
     s.score += Math.round(SCORE[j] * multiplier(s.combo));
   }
   let hp = HEALTH[j];
@@ -156,6 +157,7 @@ export function press(s: SessionState, lane: number, t: number): void {
     register(s, j, lane, n.t - t, t);
     if (n.end) {
       n.holding = true;
+      n.sustainMult = multiplier(s.combo);
       s.holds[lane] = n;
       s.counts.holds++;
     }
@@ -173,39 +175,56 @@ export function press(s: SessionState, lane: number, t: number): void {
   }
 }
 
-/** Lane released at song time `t`. Only the last finger/key on a lane releases a hold. */
+/**
+ * Is an unjudged note in `lane` within the Good window of song time `t`? Pure query for input
+ * adapters that need chart context (the guitar's re-strum rule); it changes nothing.
+ */
+export function noteNear(s: SessionState, lane: number, t: number): boolean {
+  for (let i = s.cursor; i < s.notes.length; i++) {
+    const n = s.notes[i]!;
+    if (n.t > t + WINDOWS.good) return false;
+    if (!n.judged && n.lane === lane && Math.abs(n.t - t) <= WINDOWS.good) return true;
+  }
+  return false;
+}
+
+/**
+ * End a sustain at song time `at` (clamped to the tail): pays SUSTAIN_SCORE × fraction held at
+ * the multiplier the head earned. No judgement, combo, accuracy or health change (Guitar Hero
+ * rules). The head's multiplier, not the current one, keeps live and replay scoring identical:
+ * the tail completes in the frame update, which may run before inputs stamped just earlier.
+ */
+function endSustain(s: SessionState, lane: number, h: SessionNote, at: number): void {
+  const end = Math.min(at, h.end);
+  s.holds[lane] = null;
+  h.holding = false;
+  h.done = true;
+  h.heldTo = end;
+  if (s.ended) return;
+  const frac = Math.min(1, Math.max(0, (end - h.t) / (h.end - h.t)));
+  s.score += Math.round(SUSTAIN_SCORE * frac * h.sustainMult);
+}
+
+/** Lane released at song time `t`. Only the last finger/key on a lane ends a sustain. */
 export function release(s: SessionState, lane: number, t: number): void {
   s.pressed[lane] = Math.max(0, (s.pressed[lane] ?? 0) - 1);
   if (s.pressed[lane]! > 0) return;
   const h = s.holds[lane];
-  if (!h) return;
-  s.holds[lane] = null;
-  h.holding = false;
-  h.done = true;
-  if (s.ended) return;
-  const d = h.end - t;
-  const j = judgeRelease(d);
-  if (j === 'drop') h.dropped = true;
-  register(s, j, lane, j === 'drop' ? 0 : d, t);
+  if (h) endSustain(s, lane, h, t);
 }
 
-/** Drop every active hold as an early release (pause behaviour, TIMING.md §4). */
+/** Pause: every active sustain ends now, paying what was held so far (TIMING.md §4). */
 export function dropHolds(s: SessionState, t: number): void {
   for (let lane = 0; lane < 4; lane++) {
     const h = s.holds[lane];
-    if (!h) continue;
-    s.holds[lane] = null;
-    h.holding = false;
-    h.done = true;
-    h.dropped = true;
     s.pressed[lane] = 0;
-    if (!s.ended) register(s, 'drop', lane, 0, t);
+    if (h) endSustain(s, lane, h, t);
   }
 }
 
 /**
- * Advance to song time `t` from the frame loop: declare misses (Good window + grace), auto-release
- * holds held past the tail, and end the run when the song is over.
+ * Advance to song time `t` from the frame loop: declare misses (Good window + grace), complete
+ * sustains whose tail has passed, and end the run when the song is over.
  */
 export function update(s: SessionState, t: number): void {
   if (t < s.time) return; // never run backwards
@@ -227,15 +246,12 @@ export function update(s: SessionState, t: number): void {
     }
     break;
   }
+  // A sustain still held past its tail completes there with full points. The same grace as miss
+  // detection: a release stamped just before the tail but delivered after this frame must still
+  // be the thing that ends the sustain, or live and replay would pay different fractions.
   for (let lane = 0; lane < 4; lane++) {
     const h = s.holds[lane];
-    if (h && t > h.end + RELEASE_WINDOWS.good) {
-      s.holds[lane] = null;
-      h.holding = false;
-      h.done = true;
-      register(s, 'rgood', lane, -RELEASE_WINDOWS.good, t);
-      if (s.ended) return;
-    }
+    if (h && t >= h.end + MISS_GRACE) endSustain(s, lane, h, h.end);
   }
   if (s.options.endTime !== undefined && t > s.options.endTime) s.ended = true;
 }

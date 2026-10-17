@@ -83,6 +83,9 @@ export const countdown = signal(0);
 export type PauseReason = 'user' | 'background' | 'audio';
 export const pauseReason = signal<PauseReason>('user');
 export const audioReady = signal(false);
+/** Guitar controller (WebUSB): no API in this browser, none connected, or streaming. */
+export type GuitarStatus = 'unsupported' | 'none' | 'connected';
+export const guitarStatus = signal<GuitarStatus>('none');
 /** Song select shows the seed hint once, right after the lesson (or after skipping it). */
 export const firstSongHint = signal(false);
 export const toast = signal<string | null>(null);

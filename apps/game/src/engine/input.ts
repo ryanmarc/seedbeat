@@ -9,7 +9,7 @@ export interface LaneEvent {
   down: boolean;
   /** Performance-clock milliseconds, already passed through the timestamp rule. */
   perfMs: number;
-  source: 'pointer' | 'key' | 'gamepad';
+  source: 'pointer' | 'key' | 'gamepad' | 'guitar';
 }
 
 export type InputSink = (e: LaneEvent) => void;

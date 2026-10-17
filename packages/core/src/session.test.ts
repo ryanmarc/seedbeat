@@ -1,14 +1,8 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import type { ChartNote } from './chart';
-import {
-  RELEASE_WINDOWS,
-  WINDOWS,
-  gradeFor,
-  judgeHit,
-  judgeRelease,
-  multiplier,
-} from './judgement';
-import { createSession, dropHolds, press, release, summarize, update } from './session';
+import { MISS_GRACE, SUSTAIN_SCORE, WINDOWS, gradeFor, judgeHit, multiplier } from './judgement';
+import { createSession, dropHolds, noteNear, press, release, summarize, update } from './session';
 
 const tap = (t: number, lane: number): ChartNote => ({ t, lane, end: 0 });
 const hold = (t: number, lane: number, end: number): ChartNote => ({ t, lane, end });
@@ -21,13 +15,6 @@ describe('judgement tables', () => {
     expect(judgeHit(0.1)).toBe('good');
     expect(judgeHit(0.135)).toBe('good');
     expect(judgeHit(0.1351)).toBeNull();
-    // Releases use the wider RELEASE_WINDOWS (Perfect 90 ms, Great 180 ms, Good 200 ms).
-    expect(judgeRelease(0.201)).toBe('drop');
-    expect(judgeRelease(0.2)).toBe('rgood');
-    expect(judgeRelease(0.135)).toBe('rgreat');
-    expect(judgeRelease(-0.3)).toBe('rgood'); // late releases cap at Good via auto-release
-    expect(judgeRelease(-0.09)).toBe('rperfect');
-    expect(judgeRelease(0.0901)).toBe('rgreat');
     expect(multiplier(0)).toBe(1);
     expect(multiplier(50)).toBe(1.5);
     expect(multiplier(250)).toBe(2);
@@ -88,55 +75,117 @@ describe('session', () => {
     expect(s.lateInputs).toBe(1);
   });
 
-  it('holds: head then release graded by the tail; early release drops', () => {
+  it('holds: the head is judged; the sustain pays for the fraction held, with no release judgement', () => {
     const s = createSession([hold(1, 2, 2), hold(3, 1, 4)], { difficulty: 1 });
     update(s, 1);
     press(s, 2, 1.0);
     expect(s.holds[2]).not.toBeNull();
+    const afterHead = s.score;
     update(s, 1.5);
-    release(s, 2, 2.02);
-    expect(s.events.map((e) => e.judgement)).toEqual(['perfect', 'rperfect']);
+    release(s, 2, 1.6); // 60 % of the way through
+    expect(s.events.map((e) => e.judgement)).toEqual(['perfect']); // no second event
+    expect(s.score - afterHead).toBe(Math.round(SUSTAIN_SCORE * 0.6 * multiplier(1)));
+    expect(s.notes[0]!.done).toBe(true);
+    expect(s.notes[0]!.heldTo).toBe(1.6);
+    expect(s.combo).toBe(1); // letting go early is not a break
+    expect(s.counts.miss).toBe(0);
+    expect(s.health).toBe(100);
     expect(s.counts.holds).toBe(1);
     update(s, 3);
     press(s, 1, 3.0);
-    release(s, 1, 3.5); // 0.5 s early → drop
-    expect(s.events.at(-1)?.judgement).toBe('drop');
-    expect(s.notes[1]!.dropped).toBe(true);
-    expect(s.combo).toBe(0);
-    expect(s.health).toBeCloseTo(100 - 6, 9); // health clamps at 100 before the drop
+    const before = s.score;
+    release(s, 1, 3.0); // instant release: nothing earned, nothing lost
+    expect(s.score).toBe(before);
+    expect(s.combo).toBe(2);
   });
 
-  it('holding past the tail auto-releases as a late Good', () => {
+  it('a sustain held to the tail completes there with full points; the later lift pays nothing', () => {
     const s = createSession([hold(1, 0, 2)], { difficulty: 1 });
     update(s, 1);
     press(s, 0, 1);
-    update(s, 2 + WINDOWS.good + 0.001); // past the head Good window: still held
-    expect(s.events.map((e) => e.judgement)).toEqual(['perfect']);
-    update(s, 2 + RELEASE_WINDOWS.good + 0.001);
-    expect(s.events.map((e) => e.judgement)).toEqual(['perfect', 'rgood']);
+    const afterHead = s.score;
+    update(s, 1.9);
+    expect(s.holds[0]).not.toBeNull();
+    expect(s.score).toBe(afterHead);
+    update(s, 2 + MISS_GRACE); // tail passed the line (plus the late-input grace) while still held
     expect(s.holds[0]).toBeNull();
-    release(s, 0, 2.5); // nothing left to release
-    expect(s.events).toHaveLength(2);
+    expect(s.notes[0]!.heldTo).toBe(2);
+    expect(s.score - afterHead).toBe(Math.round(SUSTAIN_SCORE * multiplier(1)));
+    release(s, 0, 2.5);
+    expect(s.score - afterHead).toBe(Math.round(SUSTAIN_SCORE * multiplier(1)));
+    expect(s.events).toHaveLength(1);
   });
 
-  it('two fingers on one lane: the hold releases only when the last one lifts', () => {
+  it('a release timestamped after the tail still pays the full sustain', () => {
+    const s = createSession([hold(1, 0, 2)], { difficulty: 1 });
+    update(s, 1);
+    press(s, 0, 1);
+    release(s, 0, 2.3); // input arrives before the frame that would complete it
+    expect(s.notes[0]!.heldTo).toBe(2);
+    expect(s.score).toBe(
+      Math.round(300 * multiplier(1)) + Math.round(SUSTAIN_SCORE * multiplier(1)),
+    );
+  });
+
+  it('two fingers on one lane: the sustain ends only when the last one lifts', () => {
     const s = createSession([hold(1, 0, 2)], { difficulty: 1 });
     update(s, 1);
     press(s, 0, 1);
     press(s, 0, 1.2);
     release(s, 0, 1.3);
     expect(s.holds[0]).not.toBeNull();
-    release(s, 0, 2.0);
-    expect(s.events.at(-1)?.judgement).toBe('rperfect');
+    release(s, 0, 1.5);
+    expect(s.holds[0]).toBeNull();
+    expect(s.notes[0]!.heldTo).toBe(1.5);
   });
 
-  it('pause drops active holds', () => {
+  it('pause ends active sustains at the pause time with partial points and no break', () => {
     const s = createSession([hold(1, 3, 2)], { difficulty: 1 });
     update(s, 1);
     press(s, 3, 1);
+    const afterHead = s.score;
     dropHolds(s, 1.4);
-    expect(s.events.at(-1)?.judgement).toBe('drop');
+    expect(s.holds[3]).toBeNull();
     expect(s.pressed[3]).toBe(0);
+    expect(s.combo).toBe(1);
+    expect(s.score - afterHead).toBe(Math.round(SUSTAIN_SCORE * 0.4 * multiplier(1)));
+  });
+
+  it('the sustain pays at the multiplier its head earned, whatever the combo does meanwhile', () => {
+    const s = createSession([hold(1, 0, 3), tap(1.5, 1), tap(2, 2)], { difficulty: 1 });
+    update(s, 1);
+    press(s, 0, 1); // combo 1 → multiplier 1.01
+    press(s, 1, 1.5);
+    press(s, 2, 2); // combo 3 → multiplier 1.03
+    const before = s.score;
+    update(s, 3 + MISS_GRACE);
+    expect(s.score - before).toBe(Math.round(SUSTAIN_SCORE * multiplier(1)));
+  });
+
+  it('sustain points are bounded by the full value and never decrease with a later release', () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.2, max: 3, noNaN: true }),
+        fc.double({ min: -0.5, max: 4, noNaN: true }),
+        fc.double({ min: -0.5, max: 4, noNaN: true }),
+        (len, ra, rb) => {
+          const run = (rel: number): number => {
+            const s = createSession([hold(1, 0, 1 + len)], { difficulty: 1 });
+            update(s, 1);
+            press(s, 0, 1);
+            const afterHead = s.score;
+            release(s, 0, 1 + rel);
+            return s.score - afterHead;
+          };
+          const [lo, hi] = ra <= rb ? [ra, rb] : [rb, ra];
+          const a = run(lo);
+          const b = run(hi);
+          expect(a).toBeGreaterThanOrEqual(0);
+          expect(b).toBeLessThanOrEqual(Math.round(SUSTAIN_SCORE * multiplier(1)));
+          expect(b).toBeGreaterThanOrEqual(a);
+        },
+      ),
+    );
   });
 
   it('fails at zero health unless no-fail is on', () => {
@@ -168,5 +217,27 @@ describe('session', () => {
     update(s, 2);
     update(s, 0.5);
     expect(s.time).toBe(2);
+  });
+});
+
+describe('noteNear', () => {
+  it('reports an unjudged note in the lane within the Good window, and nothing else', () => {
+    const s = createSession([tap(1, 0), hold(2, 1, 3), tap(5, 0)], { difficulty: 1 });
+    update(s, 0.5);
+    expect(noteNear(s, 0, 1)).toBe(true);
+    expect(noteNear(s, 0, 1 - WINDOWS.good)).toBe(true);
+    expect(noteNear(s, 0, 1 + WINDOWS.good)).toBe(true);
+    expect(noteNear(s, 0, 1 + WINDOWS.good + 0.001)).toBe(false);
+    expect(noteNear(s, 1, 1)).toBe(false); // other lane
+    expect(noteNear(s, 1, 2.05)).toBe(true); // hold heads count
+    expect(noteNear(s, 0, 3)).toBe(false); // nothing near
+  });
+  it('ignores notes that are already judged', () => {
+    const s = createSession([tap(1, 0), tap(1.1, 0)], { difficulty: 1 });
+    update(s, 0.9);
+    press(s, 0, 1);
+    expect(noteNear(s, 0, 1.0)).toBe(true); // the second note is still unjudged and 100 ms away
+    press(s, 0, 1.1);
+    expect(noteNear(s, 0, 1.05)).toBe(false);
   });
 });

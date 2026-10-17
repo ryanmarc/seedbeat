@@ -53,11 +53,8 @@ export function hapticFor(j: Judgement): HapticKind {
   switch (j) {
     case 'perfect':
     case 'great':
-    case 'rperfect':
-    case 'rgreat':
       return 'light';
     case 'good':
-    case 'rgood':
       return 'soft';
     default:
       return 'miss';

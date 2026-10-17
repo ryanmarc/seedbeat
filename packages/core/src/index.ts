@@ -64,22 +64,19 @@ export {
   type DifficultyName,
 } from './chart';
 export {
-  RELEASE_WINDOWS,
   WINDOWS,
   MISS_GRACE,
+  SUSTAIN_SCORE,
   SCORE,
   ACCURACY,
   HEALTH,
   EASY_PENALTY_SCALE,
   judgeHit,
-  judgeRelease,
-  isRelease,
   isBreak,
   multiplier,
   gradeFor,
   type Judgement,
   type HitJudgement,
-  type ReleaseJudgement,
   type Grade,
 } from './judgement';
 export {
@@ -87,6 +84,7 @@ export {
   appendNotes,
   press,
   release,
+  noteNear,
   dropHolds,
   update,
   accuracy,

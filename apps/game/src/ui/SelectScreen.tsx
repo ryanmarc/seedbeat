@@ -242,7 +242,7 @@ export function SelectScreen() {
         </div>
         <p class="hint">
           Keys <kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd> or the arrows hit the four lanes.
-          Hold long notes and let go when the RELEASE cap reaches the line. <kbd>Esc</kbd> pauses.
+          Hold long notes until the tail reaches the line. <kbd>Esc</kbd> pauses.
         </p>
       </div>
     </section>

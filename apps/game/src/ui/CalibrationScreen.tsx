@@ -34,13 +34,18 @@ export function CalibrationScreen() {
     setRunning(true);
     setStatus('Tap on each click');
   };
-  const tap = (e: Event): void => {
+  const tapAt = (perfMs: number): void => {
     if (!running || startRef.current === null) return;
-    if ((e.target as HTMLElement).closest('button')) return;
-    const heard = controller.heardAt(eventMs(e.timeStamp, performance.now()));
+    const heard = controller.heardAt(perfMs);
     const d = tapDeviation(heard - startRef.current);
     if (d !== null) setDevs((x) => [...x, d]);
   };
+  const tap = (e: Event): void => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    tapAt(eventMs(e.timeStamp, performance.now()));
+  };
+  // Guitar: a strum counts as a tap (stamped when its USB report arrived).
+  useEffect(() => controller.onGuitarTap(tapAt), [running]);
   useEffect(() => {
     let raf = 0;
     const frame = (now: number): void => {
@@ -80,7 +85,7 @@ export function CalibrationScreen() {
       <Screen
         id="calibration"
         title="Timing calibration"
-        lede="You will hear 24 clicks at 100 BPM; the first four are a warm-up. Tap the screen or press any key on each click. Seedbeat averages how early or late your taps land and shifts the judgement window to match your speakers and screen."
+        lede="You will hear 24 clicks at 100 BPM; the first four are a warm-up. Tap the screen, press any key or strum the guitar on each click. Seedbeat averages how early or late your taps land and shifts the judgement window to match your speakers and screen."
       >
         <div class="cal-stage">
           <div class="cal-dot" ref={dot} aria-hidden="true" />

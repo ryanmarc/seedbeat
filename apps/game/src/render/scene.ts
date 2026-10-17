@@ -16,7 +16,6 @@ import {
 } from 'pixi.js';
 import {
   INTENSITY,
-  RELEASE_WINDOWS,
   sectionFor,
   type Judgement,
   type MoodId,
@@ -118,17 +117,15 @@ export interface SceneFrame {
   idle?: boolean;
   /** Bar to use for section lookups when the draw clock does not map to song bars (Practice loops). */
   sectionBar?: number;
+  /** Lanes lit by a held guitar fret (visual only; judgement still comes from the session). */
+  held?: readonly boolean[];
 }
 
 const POP_TEXT: Record<Judgement, string> = {
   perfect: 'PERFECT',
   great: 'GREAT',
   good: 'GOOD',
-  rperfect: 'PERFECT',
-  rgreat: 'GREAT',
-  rgood: 'GOOD',
   miss: 'MISS',
-  drop: 'LET GO EARLY',
 };
 
 interface HoldView {
@@ -155,7 +152,6 @@ export class Scene {
   private readonly beatLines: Sprite[] = [];
   private readonly notes: Sprite[] = [];
   private readonly holds: HoldView[] = [];
-  private readonly labels: BitmapText[] = [];
   private readonly receptorFill: Sprite[] = [];
   private readonly receptorProgress: Sprite[] = [];
   private readonly keyCaps: BitmapText[] = [];
@@ -318,13 +314,6 @@ export class Scene {
       s.visible = false;
       this.notes.push(s);
       noteLayer.addChild(s);
-    }
-    for (let i = 0; i < 4; i++) {
-      const t = new BitmapText({ text: 'RELEASE', style: { fontFamily: DATA_FONT, fontSize: 12 } });
-      t.anchor.set(0.5, 1);
-      t.visible = false;
-      this.labels.push(t);
-      noteLayer.addChild(t);
     }
     if (l.touch) {
       const mask = new Graphics().rect(0, 0, l.width, l.padTop - 6).fill(0xffffff);
@@ -545,37 +534,24 @@ export class Scene {
     for (; this.lastEvent < s.events.length; this.lastEvent++) {
       const e = s.events[this.lastEvent]!;
       const j = e.judgement;
-      const isBreak = j === 'miss' || j === 'drop';
+      const isBreak = j === 'miss';
       if (!isBreak) this.burst(e.lane, pal.lane[e.lane]!);
       this.pop.text = POP_TEXT[j];
       this.pop.tint =
-        j === 'perfect' || j === 'rperfect'
+        j === 'perfect'
           ? pal.accent2
-          : j === 'great' || j === 'rgreat'
+          : j === 'great'
             ? pal.accent
             : isBreak
               ? CHROME.bad
               : 0xd7d0ee;
-      const timing =
-        j === 'great' || j === 'good' || j === 'rgreat' || j === 'rgood'
-          ? e.dt > 0
-            ? 'early'
-            : 'late'
-          : '';
-      const rel = j === 'rperfect' || j === 'rgreat' || j === 'rgood';
-      this.popSub.text = rel
-        ? timing
-          ? `release · ${timing}`
-          : 'release'
-        : j === 'drop'
-          ? 'hold until the tail reaches the line'
-          : timing;
+      this.popSub.text = j === 'great' || j === 'good' ? (e.dt > 0 ? 'early' : 'late') : '';
       this.popAt = f.perf;
     }
 
     // ---- lane press state → beams, receptors, pads
     for (let lane = 0; lane < 4; lane++) {
-      const on = s.pressed[lane]! > 0;
+      const on = s.pressed[lane]! > 0 || f.held?.[lane] === true;
       if (on && !this.wasPressed[lane]) this.flashAt[lane] = f.perf;
       this.wasPressed[lane] = on;
       const age = f.perf - this.flashAt[lane]!;
@@ -632,17 +608,20 @@ export class Scene {
     while (hi < notes.length && notes[hi]!.t < t + f.approach * 1.02) hi++;
     let ni = 0;
     let hiIdx = 0;
-    let labelIdx = 0;
     for (let i = hi - 1; i >= this.renderIndex; i--) {
       const n = notes[i]!;
-      const missed = n.judged === 'miss' || n.dropped;
+      const missed = n.judged === 'miss';
+      // A sustain let go early: the unplayed remainder stays on the highway, greyed from the lift.
+      const dropped = n.end !== 0 && n.done && !missed && n.heldTo < n.end;
       if (n.judged && !n.end && !missed) continue;
-      if (n.end && n.judged && !n.holding && !missed) continue;
+      if (n.end && n.judged && !n.holding && !missed && !dropped) continue;
       let p = (n.t - t) / f.approach;
       if (n.holding) p = 0;
+      if (dropped) p = (n.heldTo - t) / f.approach;
       if (p < -0.25 && !n.end) continue;
       const fade = p > 0.85 ? (1 - p) / 0.15 : 1;
-      const colour = missed ? CHROME.missedGrey : pal.lane[n.lane]!;
+      const grey = missed || dropped;
+      const colour = grey ? CHROME.missedGrey : pal.lane[n.lane]!;
 
       if (n.end) {
         const ptRaw = (n.end - t) / f.approach;
@@ -674,34 +653,21 @@ export class Scene {
         hv.mesh.geometry.getBuffer('aUV').update();
         hv.mesh.texture = n.holding ? this.kit.holdBodyChevron : this.kit.holdBody;
         hv.mesh.tint = colour;
-        hv.mesh.alpha = missed
+        hv.mesh.alpha = grey
           ? 0.22
           : (n.holding ? 0.55 : 0.32) * Math.min(1, fade + 0.4) + (n.holding ? 0.25 : 0);
         hv.mesh.visible = true;
         const cap = hv.cap;
         if (ptRaw <= 1.02) {
-          const near = Math.abs(n.end - t) <= RELEASE_WINDOWS.great;
-          cap.texture = missed
-            ? this.kit.tailCapMissed
-            : near
-              ? this.kit.tailCapNear
-              : this.kit.tailCap;
-          cap.tint = near && !missed ? colour : 0xffffff;
+          cap.texture = grey ? this.kit.tailCapMissed : this.kit.tailCap;
+          cap.tint = 0xffffff;
           cap.position.set(xb, b.y);
           cap.width = (b.w / 4) * 0.86;
           cap.height = Math.max(5, 14 * b.s + 3);
-          cap.alpha = missed ? 0.3 : fade;
+          cap.alpha = grey ? 0.3 : fade;
           cap.visible = true;
-          if (n.holding && labelIdx < 4) {
-            const lab = this.labels[labelIdx++]!;
-            lab.text = near ? 'LET GO' : 'RELEASE';
-            lab.tint = near ? 0xffffff : colour;
-            lab.position.set(xb, b.y - cap.height / 2 - 4);
-            lab.scale.set(Math.max(0.75, b.s + 0.25));
-            lab.visible = true;
-          }
         } else cap.visible = false;
-        if (n.holding) continue; // the receptor shows progress instead of a gem
+        if (n.holding || dropped) continue; // the receptor shows progress instead of a gem
       }
       if (ni >= NOTE_POOL) continue;
       const q = project(l, p, this.proj);
@@ -720,8 +686,6 @@ export class Scene {
       if (hv.meshHeld.visible) hv.meshHeld.visible = false;
       if (hv.cap.visible) hv.cap.visible = false;
     }
-    for (; labelIdx < 4; labelIdx++)
-      if (this.labels[labelIdx]!.visible) this.labels[labelIdx]!.visible = false;
 
     // ---- particles
     const step = f.paused ? 0 : dt;
