@@ -1,0 +1,313 @@
+{
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-400-normal.woff": {
+    "file": "assets/chakra-petch-latin-400-normal-D7EtbySE.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-400-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-400-normal.woff2": {
+    "file": "assets/chakra-petch-latin-400-normal-SafcrIr2.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-400-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-600-normal.woff": {
+    "file": "assets/chakra-petch-latin-600-normal-DQKfcdKo.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-600-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-600-normal.woff2": {
+    "file": "assets/chakra-petch-latin-600-normal-DVQm9bgb.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-600-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-700-normal.woff": {
+    "file": "assets/chakra-petch-latin-700-normal-D1s_c2du.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-700-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-700-normal.woff2": {
+    "file": "assets/chakra-petch-latin-700-normal-CnDBPjkL.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-700-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-ext-400-normal.woff": {
+    "file": "assets/chakra-petch-latin-ext-400-normal-MNNNbyh_.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-ext-400-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-ext-400-normal.woff2": {
+    "file": "assets/chakra-petch-latin-ext-400-normal-C8u6EFkq.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-ext-400-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-ext-600-normal.woff": {
+    "file": "assets/chakra-petch-latin-ext-600-normal-nL80L4xU.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-ext-600-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-ext-600-normal.woff2": {
+    "file": "assets/chakra-petch-latin-ext-600-normal-CdGvbdDU.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-ext-600-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-ext-700-normal.woff": {
+    "file": "assets/chakra-petch-latin-ext-700-normal-BeviJPUl.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-ext-700-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-ext-700-normal.woff2": {
+    "file": "assets/chakra-petch-latin-ext-700-normal-DAkvJhej.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-ext-700-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-thai-400-normal.woff": {
+    "file": "assets/chakra-petch-thai-400-normal-KdzBjiWs.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-thai-400-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-thai-400-normal.woff2": {
+    "file": "assets/chakra-petch-thai-400-normal-Bw1Q-fVY.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-thai-400-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-thai-600-normal.woff": {
+    "file": "assets/chakra-petch-thai-600-normal-BiM5MXH8.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-thai-600-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-thai-600-normal.woff2": {
+    "file": "assets/chakra-petch-thai-600-normal-C620THcd.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-thai-600-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-thai-700-normal.woff": {
+    "file": "assets/chakra-petch-thai-700-normal-vZLZ_5L8.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-thai-700-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-thai-700-normal.woff2": {
+    "file": "assets/chakra-petch-thai-700-normal-B7WL5pBr.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-thai-700-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-vietnamese-400-normal.woff": {
+    "file": "assets/chakra-petch-vietnamese-400-normal-Cn7ya5On.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-vietnamese-400-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-vietnamese-600-normal.woff": {
+    "file": "assets/chakra-petch-vietnamese-600-normal-Pvj4qcw_.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-vietnamese-600-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-vietnamese-700-normal.woff": {
+    "file": "assets/chakra-petch-vietnamese-700-normal-gQuUA8Wu.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+chakra-petch@5.3.0/node_modules/@fontsource/chakra-petch/files/chakra-petch-vietnamese-700-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-cyrillic-500-normal.woff": {
+    "file": "assets/jetbrains-mono-cyrillic-500-normal-DJqRU3vO.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-cyrillic-500-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-cyrillic-500-normal.woff2": {
+    "file": "assets/jetbrains-mono-cyrillic-500-normal-DmUKJPL_.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-cyrillic-500-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-cyrillic-700-normal.woff": {
+    "file": "assets/jetbrains-mono-cyrillic-700-normal-CEoEElIJ.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-cyrillic-700-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-cyrillic-700-normal.woff2": {
+    "file": "assets/jetbrains-mono-cyrillic-700-normal-BWTpRfYl.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-cyrillic-700-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-greek-500-normal.woff": {
+    "file": "assets/jetbrains-mono-greek-500-normal-D7SFKleX.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-greek-500-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-greek-500-normal.woff2": {
+    "file": "assets/jetbrains-mono-greek-500-normal-JpySY46c.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-greek-500-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-greek-700-normal.woff": {
+    "file": "assets/jetbrains-mono-greek-700-normal-DEigVDxa.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-greek-700-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-greek-700-normal.woff2": {
+    "file": "assets/jetbrains-mono-greek-700-normal-C6CZE3T8.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-greek-700-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff": {
+    "file": "assets/jetbrains-mono-latin-500-normal-CJOVTJB7.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2": {
+    "file": "assets/jetbrains-mono-latin-500-normal-BWZEU5yA.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff": {
+    "file": "assets/jetbrains-mono-latin-700-normal-D3wTyLJW.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2": {
+    "file": "assets/jetbrains-mono-latin-700-normal-BYuf6tUa.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-ext-500-normal.woff": {
+    "file": "assets/jetbrains-mono-latin-ext-500-normal-ckzbgY84.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-ext-500-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-ext-500-normal.woff2": {
+    "file": "assets/jetbrains-mono-latin-ext-500-normal-Cut-4mMH.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-ext-500-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-ext-700-normal.woff": {
+    "file": "assets/jetbrains-mono-latin-ext-700-normal-CxPITLHs.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-ext-700-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-ext-700-normal.woff2": {
+    "file": "assets/jetbrains-mono-latin-ext-700-normal-CZipNAKV.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-ext-700-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-vietnamese-500-normal.woff": {
+    "file": "assets/jetbrains-mono-vietnamese-500-normal-DNRqzVM1.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-vietnamese-500-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-vietnamese-700-normal.woff": {
+    "file": "assets/jetbrains-mono-vietnamese-700-normal-BDLVIk2r.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+jetbrains-mono@5.3.0/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-vietnamese-700-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+rubik-mono-one@5.3.0/node_modules/@fontsource/rubik-mono-one/files/rubik-mono-one-cyrillic-400-normal.woff": {
+    "file": "assets/rubik-mono-one-cyrillic-400-normal-CYYDEcIq.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+rubik-mono-one@5.3.0/node_modules/@fontsource/rubik-mono-one/files/rubik-mono-one-cyrillic-400-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+rubik-mono-one@5.3.0/node_modules/@fontsource/rubik-mono-one/files/rubik-mono-one-cyrillic-400-normal.woff2": {
+    "file": "assets/rubik-mono-one-cyrillic-400-normal-BnSqJbXw.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+rubik-mono-one@5.3.0/node_modules/@fontsource/rubik-mono-one/files/rubik-mono-one-cyrillic-400-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+rubik-mono-one@5.3.0/node_modules/@fontsource/rubik-mono-one/files/rubik-mono-one-latin-400-normal.woff": {
+    "file": "assets/rubik-mono-one-latin-400-normal-Cd19iSlZ.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+rubik-mono-one@5.3.0/node_modules/@fontsource/rubik-mono-one/files/rubik-mono-one-latin-400-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+rubik-mono-one@5.3.0/node_modules/@fontsource/rubik-mono-one/files/rubik-mono-one-latin-400-normal.woff2": {
+    "file": "assets/rubik-mono-one-latin-400-normal-U2Afr9Di.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+rubik-mono-one@5.3.0/node_modules/@fontsource/rubik-mono-one/files/rubik-mono-one-latin-400-normal.woff2"
+  },
+  "../../node_modules/.pnpm/@fontsource+rubik-mono-one@5.3.0/node_modules/@fontsource/rubik-mono-one/files/rubik-mono-one-latin-ext-400-normal.woff": {
+    "file": "assets/rubik-mono-one-latin-ext-400-normal-CJfzRdUT.woff",
+    "src": "../../node_modules/.pnpm/@fontsource+rubik-mono-one@5.3.0/node_modules/@fontsource/rubik-mono-one/files/rubik-mono-one-latin-ext-400-normal.woff"
+  },
+  "../../node_modules/.pnpm/@fontsource+rubik-mono-one@5.3.0/node_modules/@fontsource/rubik-mono-one/files/rubik-mono-one-latin-ext-400-normal.woff2": {
+    "file": "assets/rubik-mono-one-latin-ext-400-normal-CZqoBXpE.woff2",
+    "src": "../../node_modules/.pnpm/@fontsource+rubik-mono-one@5.3.0/node_modules/@fontsource/rubik-mono-one/files/rubik-mono-one-latin-ext-400-normal.woff2"
+  },
+  "../../node_modules/.pnpm/pixi.js@8.22.0/node_modules/pixi.js/lib/environment-browser/browserAll.mjs": {
+    "file": "assets/browserAll-CWA4ptvo.js",
+    "name": "browserAll",
+    "src": "../../node_modules/.pnpm/pixi.js@8.22.0/node_modules/pixi.js/lib/environment-browser/browserAll.mjs",
+    "isDynamicEntry": true,
+    "imports": [
+      "_CanvasPool-C75lGdpU.js",
+      "_init-DnjC885B.js",
+      "index.html"
+    ]
+  },
+  "../../node_modules/.pnpm/pixi.js@8.22.0/node_modules/pixi.js/lib/environment-webworker/webworkerAll.mjs": {
+    "file": "assets/webworkerAll-C1aubU08.js",
+    "name": "webworkerAll",
+    "src": "../../node_modules/.pnpm/pixi.js@8.22.0/node_modules/pixi.js/lib/environment-webworker/webworkerAll.mjs",
+    "isDynamicEntry": true,
+    "imports": [
+      "_init-DnjC885B.js",
+      "index.html"
+    ]
+  },
+  "_CanvasPool-C75lGdpU.js": {
+    "file": "assets/CanvasPool-C75lGdpU.js",
+    "name": "CanvasPool"
+  },
+  "_RenderTargetSystem-DMYampxv.js": {
+    "file": "assets/RenderTargetSystem-DMYampxv.js",
+    "name": "RenderTargetSystem",
+    "imports": [
+      "_CanvasPool-C75lGdpU.js"
+    ]
+  },
+  "_canvasUtils-P77B3LvQ.js": {
+    "file": "assets/canvasUtils-P77B3LvQ.js",
+    "name": "canvasUtils",
+    "imports": [
+      "_CanvasPool-C75lGdpU.js"
+    ]
+  },
+  "_getTexelRangeRects-Bt6sofXj.js": {
+    "file": "assets/getTexelRangeRects-Bt6sofXj.js",
+    "name": "getTexelRangeRects",
+    "imports": [
+      "_CanvasPool-C75lGdpU.js",
+      "_RenderTargetSystem-DMYampxv.js"
+    ]
+  },
+  "_getTextureBatchBindGroup-DSkr5nUc.js": {
+    "file": "assets/getTextureBatchBindGroup-DSkr5nUc.js",
+    "name": "getTextureBatchBindGroup",
+    "imports": [
+      "_CanvasPool-C75lGdpU.js"
+    ]
+  },
+  "_init-DnjC885B.js": {
+    "file": "assets/init-DnjC885B.js",
+    "name": "init",
+    "imports": [
+      "_CanvasPool-C75lGdpU.js",
+      "_canvasUtils-P77B3LvQ.js"
+    ]
+  },
+  "index.html": {
+    "file": "assets/index-Depnq6f1.js",
+    "name": "index",
+    "src": "index.html",
+    "isEntry": true,
+    "imports": [
+      "_CanvasPool-C75lGdpU.js",
+      "_canvasUtils-P77B3LvQ.js",
+      "_RenderTargetSystem-DMYampxv.js",
+      "_getTextureBatchBindGroup-DSkr5nUc.js",
+      "_getTexelRangeRects-Bt6sofXj.js"
+    ],
+    "dynamicImports": [
+      "../../node_modules/.pnpm/pixi.js@8.22.0/node_modules/pixi.js/lib/environment-browser/browserAll.mjs",
+      "../../node_modules/.pnpm/pixi.js@8.22.0/node_modules/pixi.js/lib/environment-webworker/webworkerAll.mjs",
+      "index.html"
+    ],
+    "css": [
+      "assets/index-32AuN9nW.css"
+    ],
+    "assets": [
+      "assets/index-EWMeq0Eh.js",
+      "assets/rubik-mono-one-cyrillic-400-normal-BnSqJbXw.woff2",
+      "assets/rubik-mono-one-cyrillic-400-normal-CYYDEcIq.woff",
+      "assets/rubik-mono-one-latin-ext-400-normal-CZqoBXpE.woff2",
+      "assets/rubik-mono-one-latin-ext-400-normal-CJfzRdUT.woff",
+      "assets/rubik-mono-one-latin-400-normal-U2Afr9Di.woff2",
+      "assets/rubik-mono-one-latin-400-normal-Cd19iSlZ.woff",
+      "assets/chakra-petch-thai-400-normal-Bw1Q-fVY.woff2",
+      "assets/chakra-petch-thai-400-normal-KdzBjiWs.woff",
+      "assets/chakra-petch-vietnamese-400-normal-Cn7ya5On.woff",
+      "assets/chakra-petch-latin-ext-400-normal-C8u6EFkq.woff2",
+      "assets/chakra-petch-latin-ext-400-normal-MNNNbyh_.woff",
+      "assets/chakra-petch-latin-400-normal-SafcrIr2.woff2",
+      "assets/chakra-petch-latin-400-normal-D7EtbySE.woff",
+      "assets/chakra-petch-thai-600-normal-C620THcd.woff2",
+      "assets/chakra-petch-thai-600-normal-BiM5MXH8.woff",
+      "assets/chakra-petch-vietnamese-600-normal-Pvj4qcw_.woff",
+      "assets/chakra-petch-latin-ext-600-normal-CdGvbdDU.woff2",
+      "assets/chakra-petch-latin-ext-600-normal-nL80L4xU.woff",
+      "assets/chakra-petch-latin-600-normal-DVQm9bgb.woff2",
+      "assets/chakra-petch-latin-600-normal-DQKfcdKo.woff",
+      "assets/chakra-petch-thai-700-normal-B7WL5pBr.woff2",
+      "assets/chakra-petch-thai-700-normal-vZLZ_5L8.woff",
+      "assets/chakra-petch-vietnamese-700-normal-gQuUA8Wu.woff",
+      "assets/chakra-petch-latin-ext-700-normal-DAkvJhej.woff2",
+      "assets/chakra-petch-latin-ext-700-normal-BeviJPUl.woff",
+      "assets/chakra-petch-latin-700-normal-CnDBPjkL.woff2",
+      "assets/chakra-petch-latin-700-normal-D1s_c2du.woff",
+      "assets/jetbrains-mono-cyrillic-500-normal-DmUKJPL_.woff2",
+      "assets/jetbrains-mono-cyrillic-500-normal-DJqRU3vO.woff",
+      "assets/jetbrains-mono-greek-500-normal-JpySY46c.woff2",
+      "assets/jetbrains-mono-greek-500-normal-D7SFKleX.woff",
+      "assets/jetbrains-mono-vietnamese-500-normal-DNRqzVM1.woff",
+      "assets/jetbrains-mono-latin-ext-500-normal-Cut-4mMH.woff2",
+      "assets/jetbrains-mono-latin-ext-500-normal-ckzbgY84.woff",
+      "assets/jetbrains-mono-latin-500-normal-BWZEU5yA.woff2",
+      "assets/jetbrains-mono-latin-500-normal-CJOVTJB7.woff",
+      "assets/jetbrains-mono-cyrillic-700-normal-BWTpRfYl.woff2",
+      "assets/jetbrains-mono-cyrillic-700-normal-CEoEElIJ.woff",
+      "assets/jetbrains-mono-greek-700-normal-C6CZE3T8.woff2",
+      "assets/jetbrains-mono-greek-700-normal-DEigVDxa.woff",
+      "assets/jetbrains-mono-vietnamese-700-normal-BDLVIk2r.woff",
+      "assets/jetbrains-mono-latin-ext-700-normal-CZipNAKV.woff2",
+      "assets/jetbrains-mono-latin-ext-700-normal-CxPITLHs.woff",
+      "assets/jetbrains-mono-latin-700-normal-BYuf6tUa.woff2",
+      "assets/jetbrains-mono-latin-700-normal-D3wTyLJW.woff"
+    ]
+  }
+}
